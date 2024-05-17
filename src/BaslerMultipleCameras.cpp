@@ -114,11 +114,23 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 
     EnumDevices();
 
-    if (m_nDeviceNum > 0)
+    if (m_uDeviceNum > 0)
     {
-      
-       m_bsCameras.Initialize(m_nDeviceNum);
-       m_queueGrabRes.resize(m_nDeviceNum);
+        m_bsCameras.Initialize(m_uDeviceNum);
+        // std::shared_ptr<ImageBuffer<DATA>[]> 
+        // m_queueGrabRes.reset(new ImageBuffer<DATA>[m_uDeviceNum]);
+
+        m_queueGrabRes.resize(m_uDeviceNum, SafeQueue<DATA>());
+        std::cout<<"step 0"<<std::endl;
+        // for (int i = 0; m_uDeviceNum; i++) {
+        //     // m_queueGrabRes.push_back( ImageBuffer<DATA>());
+
+        //     // m_queueGrabRes[i].setCapacity();
+        //     //  m_queueGrabRes[i].setCapacity(1000);
+
+        // } 
+        std::cout<<"step 1"<<std::endl;
+
     
     } 
     else 
@@ -137,39 +149,50 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex)
 {
     
-        
-         while(true) {
-               std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        unsigned int i =0;
+        while(true) {
+               
+                if (m_bExit ) {
+                    break; 
+                }
 
-                std::cout<<nCurCameraIndex<<" .cam, in consumer, queue size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
+                const DATA buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
+                int imageSize = buff_item.imageSize;
+                if (nCurCameraIndex == 3) {
 
-                const auto buff_item = m_queueGrabRes[nCurCameraIndex].front();
-                std::cout<<buff_item[120]<<std::endl;
-                // m_queueGrabRes[nCurCameraIndex].pop_front();
-
-                // std::cout<<nCurCameraIndex<<" .cam, FrameNum:"  << " "<<buff_item.second.get()[234]<<std::endl;
+                    // printf(" Buffer:%d", buff_item.image[0]);
+                     std::cout<<nCurCameraIndex<<". Cam, Buffer Size:"<< std::hex<<buff_item.image[0]<<std::endl;
+                }
+                
+                // if (m_queueGrabRes[nCurCameraIndex].size() % 20 == 0)
+                // {
+                //    std::cout<<nCurCameraIndex<<". Cam, Buffer Size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
+                // }
+               
+                // std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                std::string filename= "GrabbedImage_" + std::to_string (i) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
+                String_t file_name(filename.c_str());
+                std::cout<< nCurCameraIndex<<".Cam, timeStamp:"<<buff_item.timeStamp<<std::endl;
+                CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image.data(), imageSize,  PixelType_BayerRG8, 4096, 3000, 0, ImageOrientation_TopDown );
+              
                 // bool res = converter->convertAndEncodeBayerToH264(buff_item.second.get(), nCurCameraIndex, buff_item.first.nHostTimeStamp,  buff_item.first.nFrameNum);
                 // if (res  )
                 //         // converter->push
                 //     converter->writeSingleFrame2MP4(nCurCameraIndex);
-                FPS_CALC_THREAD_BUF ("Consuming from Buffer callback", m_queueGrabRes, nCurCameraIndex);
+                // FPS_CALC_THREAD_BUF ("Consuming from Buffer callback", m_queueGrabRes, nCurCameraIndex);
 
-
-                if (m_bExit.load()) break; 
+                i++;
+               
          }
-
          while (m_queueGrabRes[nCurCameraIndex].size() != 0){
-
-                const auto buff_item = m_queueGrabRes[nCurCameraIndex].front();
-                // printf("%d. Cam, Left Buffer Size: %d", nCurCameraIndex, m_queueGrabRes[nCurCameraIndex].size());
-                m_queueGrabRes[nCurCameraIndex].pop_front();
-                // bool res = converter->convertAndEncodeBayerToH264(buff_item.second.get(), nCurCameraIndex, buff_item.first.nHostTimeStamp,  buff_item.first.nFrameNum);
-                // if (res )
-                //     converter->writeSingleFrame2MP4(nCurCameraIndex);
-                FPS_CALC_THREAD_BUF ("Consuming from Buffer callback", m_queueGrabRes, nCurCameraIndex);
-                std::cout<<nCurCameraIndex<< ". Cam, Left Buffer Size:" << m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
-
-
+            const DATA &buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
+            int imageSize = buff_item.imageSize;
+            std::string filename= "GrabbedImage_" + std::to_string (i) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
+            String_t file_name(filename.c_str());
+            std::cout<< nCurCameraIndex<<".Cam, timeStamp:"<<buff_item.timeStamp<<std::endl;
+            CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image.data(), imageSize,  PixelType_BayerRG8, 4096, 3000, 0, ImageOrientation_TopDown );
+              
+            i++;
          }
         
         
@@ -186,13 +209,13 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 int BaslerMultipleCameras::ThreadGrabFun(int nCurCameraIndex)
 {
     
-    std::this_thread::sleep_until(m_tWakeupTime);
+    // std::this_thread::sleep_until(m_tWakeupTime);
 
-    m_bsCameras[nCurCameraIndex].StartGrabbing();
-    int c_countOfImagesToGrab = 100;
+    // m_bsCameras[nCurCameraIndex].StartGrabbing();
+    int c_countOfImagesToGrab = 1000000;
     for (uint32_t i = 0; i < c_countOfImagesToGrab && m_bsCameras[nCurCameraIndex].IsGrabbing(); i++) 
     {
-        if (m_bExit.load()) 
+        if (m_bExit) 
             break;
         // This smart pointer will receive the grab result data.
         CBaslerUniversalGrabResultPtr ptrGrabResult;
@@ -201,24 +224,25 @@ int BaslerMultipleCameras::ThreadGrabFun(int nCurCameraIndex)
         // intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
         if (ptrGrabResult->GrabSucceeded())
         {
-            // std::cout<<"Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
+            if (i %10 == 0 /*&& (nCurCameraIndex ==2 || nCurCameraIndex ==1) */) 
+                std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
             // std::cout << "Camera " << nCurCameraIndex << ": " << m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetModelName() <<
             //     " (" << m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetIpAddress() << ")" << std::endl;
 
             // std::cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << std::endl;
             uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
             size_t bufferSize = ptrGrabResult->GetBufferSize();
-            std::shared_ptr<uint8_t[]>  tmpSharedptr(pImageBuffer);
-            // std::shared_ptr<uint8_t[]>  tmpSharedptr (new uint8_t[bufferSize]);
-            // memcpy(tmpSharedptr.get(), pImageBuffer, bufferSize);
+            // std::shared_ptr<uint8_t[]>  tmpSharedptr(pImageBuffer);
+            std::unique_ptr<uint8_t[]>  tmpSharedptr (new uint8_t[bufferSize]);
+            memcpy(tmpSharedptr.get(), pImageBuffer, bufferSize);
             // std::cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << std::endl << std::endl;
             std::string filename= "GrabbedImage_" + std::to_string (i) + ".tiff";
             String_t file_name(filename.c_str());
             // std::cout<<file_name<<std::endl;
             // std::cout<<nCurCameraIndex<<" .cam, queue size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
 
-            m_queueGrabRes[nCurCameraIndex].push_back(tmpSharedptr);
-            std::cout<<nCurCameraIndex<<" .cam, After queue size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
+            // m_queueGrabRes[nCurCameraIndex].push_back(tmpSharedptr);
+            // std::cout<<nCurCameraIndex<<" .cam, After queue size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
 
             // CImagePersistence::Save( ImageFileFormat_Tiff, file_name, ptrGrabResult );
         }
@@ -227,12 +251,13 @@ int BaslerMultipleCameras::ThreadGrabFun(int nCurCameraIndex)
             
             std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << std::endl;
         }
+        ptrGrabResult.Release();
 
 
 
    
     } 
-    m_bExit.store(true);
+    m_bExit=true;
     return 0;
 }
 
@@ -256,7 +281,7 @@ void BaslerMultipleCameras::EnumDevices()
             throw RUNTIME_EXCEPTION( "No GigE cameras present!" );
         }
         // Get all attached cameras.
-        // TlFactory.EnumerateDevices( devices );
+        // m_tlFactory.EnumerateDevices( m_allDeviceInfos);
     }
     catch (const GenericException& e)
     {
@@ -264,8 +289,10 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_nDeviceNum = m_allDeviceInfos.size() ;
-    for (unsigned int i = 0; i < m_nDeviceNum; i++) {
+    m_uDeviceNum = m_allDeviceInfos.size() ;
+    std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
+    for (unsigned int i = 0; i < m_uDeviceNum; i++) {
+        std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
         m_mapSerials.insert(std::make_pair(i , m_allDeviceInfos[i].GetSerialNumber().c_str()));
  
     } 
@@ -282,9 +309,11 @@ int BaslerMultipleCameras::OpenDevices()
     
     try
     {
-        for (size_t i = 0; i < m_nDeviceNum; ++i)
+        for (size_t i = 0; i < m_uDeviceNum; ++i)
         {
             m_bsCameras[i].Attach( m_tlFactory.CreateDevice( m_allDeviceInfos[i] ) );
+            // m_bsCameras[i].RegisterImageEventHandler( new CBaslerImageEventHandler(m_queueGrabRes), RegistrationMode_Append, Cleanup_Delete );
+            m_bsCameras[i].GrabCameraEvents = true;
             m_bsCameras[i].SetCameraContext( i );
             m_bsCameras[i].Open();
          
@@ -304,9 +333,10 @@ int BaslerMultipleCameras::OpenDevices()
 
 int BaslerMultipleCameras::OpenDevicesInThreads()
 {
-
+    // srand( (unsigned) time( NULL ) );
+    // DeviceKey = rand();
     
-    for (unsigned int  i = 0; i < m_nDeviceNum; i++)
+    for (unsigned int  i = 0; i < m_uDeviceNum; i++)
     {
         m_tOpenDevicesThreads.push_back(std::make_unique<std::thread>(std::bind(&BaslerMultipleCameras::ThreadOpenDevicesFun, this, i)));
        
@@ -324,11 +354,25 @@ int BaslerMultipleCameras::ThreadOpenDevicesFun(int nCurCameraIndex)
 {
     try
     {
-       
+           
+
+        // For this sample we configure all cameras to be in the same group.
+            // const uint32_t GroupKey = 0x112233;
+            // const uint32_t AllGroupMask( 0xffffffff ); 
             m_bsCameras[nCurCameraIndex].Attach( m_tlFactory.CreateDevice( m_allDeviceInfos[nCurCameraIndex] ) );
+            // m_bsCameras[nCurCameraIndex].RegisterConfiguration( new CActionTriggerConfiguration( DeviceKey, GroupKey, AllGroupMask ), RegistrationMode_Append, Cleanup_Delete );
+
             m_bsCameras[nCurCameraIndex].SetCameraContext(nCurCameraIndex );
+            m_bsCameras[nCurCameraIndex].RegisterImageEventHandler( new CBaslerImageEventHandler(m_queueGrabRes), RegistrationMode_Append, Cleanup_Delete );
+            m_bsCameras[nCurCameraIndex].GrabCameraEvents = true;
+
             m_bsCameras[nCurCameraIndex].Open();
-            
+              // Check if the device supports events.
+            if (!m_bsCameras[nCurCameraIndex].EventSelector.IsWritable())
+            {
+                throw RUNTIME_EXCEPTION( "The device doesn't support events." );
+            }
+
             // m_mapSerials.insert(std::make_pair(nCurCameraIndex , m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetSerialNumber().c_str()));
 
 
@@ -382,14 +426,14 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     }
 
     boost::property_tree::read_json(file, pt);
-    int height = pt.get<int>("Height");
-    int width = pt.get<int>("Width");
-    float exposureTime = pt.get<float>("ExposureTime");
-    float acquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
-    float gain = pt.get<float>("Gain");
-    std::string pixelFormat = pt.get<std::string>("PixelFormat");
+    m_uHeight = pt.get<int>("Height");
+    m_uWidth = pt.get<int>("Width");
+    m_fExposureTime = pt.get<float>("ExposureTime");
+    m_fAcquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
+    m_fGain = pt.get<float>("Gain");
+    m_sPixelFormat = pt.get<std::string>("PixelFormat");
     
-    auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(pixelFormat);
+    auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(m_sPixelFormat);
   
 
     
@@ -397,7 +441,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
     try
     {
-        for (size_t i = 0; i < m_nDeviceNum; ++i)
+        for (size_t i = 0; i < m_uDeviceNum; ++i)
         {
             
             if (pixelFormatEnum.has_value())
@@ -416,15 +460,15 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
             // Disable two-step operation
             m_bsCameras[i].BslPtpTwoStep.SetValue(false);
             m_bsCameras[i].PtpEnable.SetValue(true);
-            while (m_bsCameras[i].GevSCPSPacketSize.GetValue()!=8000) {
-				m_bsCameras[i].GevSCPSPacketSize.SetValue(8000);
+            while (m_bsCameras[i].GevSCPSPacketSize.GetValue()!=1500) {
+				m_bsCameras[i].GevSCPSPacketSize.SetValue(1500);
 			}
-
-            m_bsCameras[i].Width.SetValue(width);
-			m_bsCameras[i].Height.SetValue(height);
-            m_bsCameras[i].ExposureTime.SetValue(exposureTime);
+            m_bsCameras[i].GevSCPD.SetValue(512);
+            m_bsCameras[i].Width.SetValue(m_uWidth);
+			m_bsCameras[i].Height.SetValue(m_uHeight);
+            m_bsCameras[i].ExposureTime.SetValue(m_fExposureTime);
             m_bsCameras[i].GainSelector.SetValue(GainSelector_All);
-            m_bsCameras[i].Gain.SetValue(gain);
+            m_bsCameras[i].Gain.SetValue(m_fGain);
 
             if (m_bsCameras[i].BslPeriodicSignalSource.GetValue() != BslPeriodicSignalSource_PtpClock ){
                printf("Clock source of periodic signal is not `PtpClock`\n");
@@ -432,7 +476,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
             }
             // cout<<"ptp clock:"<<m_bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
 
-            m_bsCameras[i].BslPeriodicSignalPeriod.SetValue(1/acquisitionFrameRate  * 1e6);
+            m_bsCameras[i].BslPeriodicSignalPeriod.SetValue(1/m_fAcquisitionFrameRate  * 1e6);
             m_bsCameras[i].BslPeriodicSignalDelay.SetValue(0);
             m_bsCameras[i].TriggerSelector.SetValue(TriggerSelector_FrameStart);
             m_bsCameras[i].TriggerMode.SetValue(TriggerMode_On);
@@ -481,7 +525,7 @@ int BaslerMultipleCameras::Save2BufferThenDisk()
     
    
 
-    for (unsigned int i = 0; i < m_nDeviceNum; i++)
+    for (unsigned int i = 0; i < m_uDeviceNum; i++)
     {
       
             // m_bStartConsuming = true;
@@ -513,62 +557,65 @@ int BaslerMultipleCameras::StartGrabbing()
 
     // Calculate the time at which you want to wake up
     m_tWakeupTime = now + duration;
-    
-    for (unsigned int i = 0; i < m_nDeviceNum; i++)
-    {
+    // m_bsCameras.StartGrabbing(GrabStrategy_OneByOne, GrabLoop_ProvidedByInstantCamera);
+    m_tGrabThread = std::make_unique<std::thread>(std::bind(&BaslerMultipleCameras::ThreadSingleGrabFun, this));
+    // for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    // {
         
-        // m_bsCameras[i].StartGrabbing();
 
-        m_tGrabThreads.push_back(std::make_unique<std::thread>(std::bind(&BaslerMultipleCameras::ThreadGrabFun, this, i)));
-        if (i == 0 )
-            printf("Grabbing will start %d seconds later!\n", duraSec);
-        if (m_tGrabThreads[i] == nullptr)
-        {
-            printf("Create grab thread fail! DevIndex[%d]. Exiting...\r\n", i);
-            return -1;
-        }
+    //     m_tGrabThreads.push_back(std::make_unique<std::thread>(std::bind(&BaslerMultipleCameras::ThreadGrabFun, this, i)));
+    //     if (i == 0 )
+    //         printf("Grabbing will start %d seconds later!\n", duraSec);
+    //     if (m_tGrabThreads[i] == nullptr)
+    //     {
+    //         printf("Create grab thread fail! DevIndex[%d]. Exiting...\r\n", i);
+    //         return -1;
+    //     }
         
-    }
+    // }
     
     
     
-    // int c_countOfImagesToGrab = 10;
+    // int c_countOfImagesToGrab = 200;
     // for (uint32_t i = 0; i < c_countOfImagesToGrab && m_bsCameras.IsGrabbing(); i++) 
     // {
     //     // This smart pointer will receive the grab result data.
     //     CBaslerUniversalGrabResultPtr ptrGrabResult;
     //      const int DefaultTimeout_ms = 5000;
-    //     for (size_t j = 0; j < m_nDeviceNum && m_bsCameras.IsGrabbing(); ++j)
+    //     for (size_t j = 0; j < m_uDeviceNum && m_bsCameras.IsGrabbing(); ++j)
     //     {
     //             // CInstantCameraArray::RetrieveResult will return grab results in the order they arrive.
-    //             m_bsCameras[j].RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
-
+    //             m_bsCameras.RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
+    //             // std::cout<<"ptrGrabResult:"<<ptrGrabResult->GrabSucceeded()<<std::endl;
     //             // When the cameras in the array are created the camera context value
     //             // is set to the index of the camera in the array.
     //             // The camera context is a user-settable value.
-    //             intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
-    //             if (ptrGrabResult->GrabSucceeded())
-    //             {
-    //                 std::cout<<"Timestamp:"<<ptrGrabResult->GetTimeStamp()<<std::endl;
-    //                     // Print the index and the model name of the camera.
-    //                 std::cout << "Camera " << cameraIndex << ": " << m_bsCameras[cameraIndex].GetDeviceInfo().GetModelName() <<
-    //                     " (" << m_bsCameras[cameraIndex].GetDeviceInfo().GetIpAddress() << ")" << std::endl;
+    //             // intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
+    //             // if (ptrGrabResult->GrabSucceeded())
+    //             // {
+    //             //     std::cout<<cameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
 
-    //                 // You could process the image here by accessing the image buffer.
-    //                 std::cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << std::endl;
-    //                 const uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
-    //                 std::cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << std::endl << std::endl;
-    //                 std::string filename= "GrabbedImage_" + std::to_string (i) + ".tiff";
-    //                 String_t file_name(filename.c_str());
-    //                 std::cout<<file_name<<std::endl;
-    //                 CImagePersistence::Save( ImageFileFormat_Tiff, file_name, ptrGrabResult );
-    //             }
-    //             else
-    //             {
-    //                 // If a buffer has been incompletely grabbed, the network bandwidth is possibly insufficient for transferring
-    //                 // multiple images simultaneously. See note above c_maxCamerasToUse.
-    //                 std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << std::endl;
-    //             }
+    //             //     // std::cout<<"Timestamp:"<<ptrGrabResult->GetTimeStamp()<<std::endl;
+    //             //     //     // Print the index and the model name of the camera.
+    //             //     // std::cout << "Camera " << cameraIndex << ": " << m_bsCameras[cameraIndex].GetDeviceInfo().GetModelName() <<
+    //             //     //     " (" << m_bsCameras[cameraIndex].GetDeviceInfo().GetIpAddress() << ")" << std::endl;
+
+    //             //     // // You could process the image here by accessing the image buffer.
+    //             //     // std::cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << std::endl;
+    //             //     const uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
+    //             //     // std::cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << std::endl << std::endl;
+    //             //     std::string filename= "GrabbedImage_" + std::to_string (i) + ".tiff";
+    //             //     String_t file_name(filename.c_str());
+    //             //     // std::cout<<file_name<<std::endl;
+    //             //     // CImagePersistence::Save( ImageFileFormat_Tiff, file_name, ptrGrabResult );
+    //             // }
+    //             // else
+    //             // {
+    //             //     // If a buffer has been incompletely grabbed, the network bandwidth is possibly insufficient for transferring
+    //             //     // multiple images simultaneously. See note above c_maxCamerasToUse.
+    //             //     std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << std::endl;
+    //             // }
+    //             // ptrGrabResult.Release();
     
     //     }
     
@@ -581,8 +628,78 @@ int BaslerMultipleCameras::StartGrabbing()
 
 }
 
-// Thread function for triggering
+// Thread function for Single grab
+int BaslerMultipleCameras::ThreadSingleGrabFun (){
 
+    unsigned i = 0;
+    m_bsCameras.StartGrabbing();
+
+    while(m_bsCameras.IsGrabbing())
+    {
+        std::cout<<"counter:"<<++i<<std::endl;
+        // This smart pointer will receive the grab result data.
+        if (m_bExit) 
+            break;
+        CBaslerUniversalGrabResultPtr ptrGrabResult;
+         const int DefaultTimeout_ms = 5000;
+        for (size_t j = 0; j < m_uDeviceNum ;++j)
+        {
+                // CInstantCameraArray::RetrieveResult will return grab results in the order they arrive.
+                m_bsCameras[j].RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
+                // if (ptrGrabResult->GrabSucceeded())
+                // {
+                //     // std::cout<<cameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
+
+                //     // std::cout<<"Timestamp:"<<ptrGrabResult->GetTimeStamp()<<std::endl;
+                //     //     // Print the index and the model name of the camera.
+                //     // std::cout << "Camera " << cameraIndex << ": " << m_bsCameras[cameraIndex].GetDeviceInfo().GetModelName() <<
+                //     //     " (" << m_bsCameras[cameraIndex].GetDeviceInfo().GetIpAddress() << ")" << std::endl;
+
+                //     // // // You could process the image here by accessing the image buffer.
+                //     // // std::cout << "GrabSucceeded: " << ptrGrabResult->GrabSucceeded() << std::endl;
+                //     // const uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
+                //     // // std::cout << "Gray value of first pixel: " << (uint32_t) pImageBuffer[0] << std::endl << std::endl;
+                //     // std::string filename= "GrabbedImage_" + std::to_string (i) + ".tiff";
+                //     // String_t file_name(filename.c_str());
+                //     // // std::cout<<file_name<<std::endl;
+                //     // // CImagePersistence::Save( ImageFileFormat_Tiff, file_name, ptrGrabResult );
+
+
+                //     u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
+
+                //     // std::cout << ptrGrabResult->GetCameraContext()<<" .Cam TimeStamp:" << timeStamp << std::endl;
+                //     uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
+                //     size_t bufferSize = ptrGrabResult->GetBufferSize();
+                //     int cameraIndex = ptrGrabResult->GetCameraContext();
+                //     size_t cameraPadding = ptrGrabResult->GetPaddingX();
+                //     // std::cout<<"cameraPadding:"<<cameraPadding<< " "<<ptrGrabResult->GetWidth()<<std::endl;
+                
+
+                //     //std::shared_ptr<uint8_t[]>  tmpSharedptr(pImageBuffer);
+                //     // std::unique_ptr<uint8_t[]>  tmpUniqueptr (pImageBuffer);
+                //     std::shared_ptr<uint8_t[]>  tmpUniqueptr (new uint8_t[bufferSize]);
+                //     memcpy(tmpUniqueptr.get(), pImageBuffer, bufferSize);
+                //     DATA data{tmpUniqueptr, timeStamp, bufferSize};
+                //     m_queueGrabRes[cameraIndex].push_back(data);
+                // }
+                // else
+                // {
+                //     // If a buffer has been incompletely grabbed, the network bandwidth is possibly insufficient for transferring
+                //     // multiple images simultaneously. See note above c_maxCamerasToUse.
+                //     std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << " " << ptrGrabResult->GetErrorDescription() << std::endl;
+                // }
+                // ptrGrabResult.Release();
+
+
+
+
+         }
+
+
+    }
+
+    return m_nExitCode;
+}
 
 
 
@@ -592,17 +709,15 @@ int BaslerMultipleCameras::StopGrabbing()
   
    
   
+    m_tGrabThread->join();
+
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    for (unsigned int  i = 0; i < m_nDeviceNum; i++)
+    for (unsigned int  i = 0; i < m_uDeviceNum; i++)
     {
        
-            // m_tSaveAsMP4Threads[i]->join();
-
-            m_tGrabThreads[i]->join();
+            // m_tGrabThreads[i]->join();
             m_tConsumeThreads[i]->join();
-      
-        
         
     }
 

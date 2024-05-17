@@ -8,7 +8,10 @@ class ImageBuffer
 {
   public:
     ImageBuffer () {};
-
+    //  ImageBuffer(const ImageBuffer& other) {
+    //     // std::lock_guard<std::mutex> lock(other.bmutex_); // Lock the source object's mutex
+    //     buffer_ = other.buffer_;
+    // }
     bool
     pushBack(const DataType &);
 

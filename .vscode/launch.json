@@ -9,7 +9,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/mainGrabBaslerMultiCamsDebug",
         "args": [
-            "/home/spaceport/Softwares/GrabberBaslerMultipleCameras/CameraSettings.json"
+            "/home/spaceport1/Softwares/GrabberBaslerMultipleCameras/CameraSettings.json"
         ],
        
         "stopAtEntry": false,

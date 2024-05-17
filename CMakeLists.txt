@@ -23,7 +23,6 @@ find_package(pylon 7.4.0 REQUIRED)
 # Boost 
 find_package(Boost REQUIRED)
 find_package(CUDA REQUIRED)
-# include_directories(${CUDA_INCLUDE_DIRS})
 
 
 SET(PROJECT_INCLUDE_DIRECTORIES  ${CMAKE_SOURCE_DIR}/include)

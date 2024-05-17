@@ -5,8 +5,8 @@
 #include <vector>
 #include <cassert>
 #include <atomic>
-#include <cuda.h>
-#include <cuda_runtime.h>
+// #include <cuda.h>
+// #include <cuda_runtime.h>
 #include <mutex>
 
 // #include <NvEncodeAPI.h>

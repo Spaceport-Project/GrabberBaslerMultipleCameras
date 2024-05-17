@@ -5,17 +5,16 @@
 #include <condition_variable>
 #include <signal.h>
 #include "BaslerMultipleCameras.h"
-#include "CircularBuffer.h"
 
 
 
-std::atomic<bool> BaslerMultipleCameras::m_bExit = false;
-
+bool BaslerMultipleCameras::m_bExit = false;
 
 void ctrlC (int)
 {
+  
   printf ("\nCtrl-C detected, exit condition set to true.\n");
-  BaslerMultipleCameras::m_bExit.store(true);
+  BaslerMultipleCameras::m_bExit= true;
 }
 
 int main(int argc, char *argv[]) {
@@ -27,10 +26,11 @@ int main(int argc, char *argv[]) {
 
     } 
     std::string cameraSettingsFile(argv[1]);
-    ;
+
 
 
     PylonInitialize();
+    
 
     std::unique_ptr<BaslerMultipleCameras> baslerCams (new BaslerMultipleCameras(cameraSettingsFile));
 
@@ -57,7 +57,6 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    // return 0;
 
     if (baslerCams->Save2BufferThenDisk() != exit_code) 
     {
