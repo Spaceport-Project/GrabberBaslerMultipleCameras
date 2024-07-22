@@ -135,26 +135,26 @@ public:
     class SharedQueue
     {
     public:
-        SharedQueue();
+        SharedQueue() :  queue_(), mutex_(), cond_() {};
         ~SharedQueue();
 
-        SharedQueue(const SharedQueue& other) {
+        SharedQueue(const SharedQueue& other): queue_(other.queue_), mutex_(), cond_() {
         // Copy the contents of 'other' to the new object
 
         // Example: Copy the elements from 'other' to 'this' queue
-        std::lock_guard<std::mutex> lock(other.mutex_);
-        for (const auto& item : other.queue_) {
-            queue_.emplace(item);
-        }
+            // std::lock_guard<std::mutex> lock(other.mutex_);
+            // for (const auto& item : other.queue_) {
+            //     queue_.emplace(item);
+            // }
         }
 
-        SharedQueue(SharedQueue&& other) noexcept {
-        // Move the contents of 'other' to the new object
+        // SharedQueue(SharedQueue&& other) noexcept {
+        // // Move the contents of 'other' to the new object
 
-        // Example: Move the elements from 'other' to 'this' queue
-        std::lock_guard<std::mutex> lock(other.mutex_);
-        queue_ = std::move(other.queue_);
-         }
+        // // Example: Move the elements from 'other' to 'this' queue
+        // std::lock_guard<std::mutex> lock(other.mutex_);
+        // queue_ = std::move(other.queue_);
+        //  }
     
 
         T& front();
@@ -168,12 +168,12 @@ public:
 
     private:
         std::deque<T> queue_;
-        std::mutex mutex_;
+         std::mutex mutex_;
         std::condition_variable cond_;
     }; 
 
-    template <typename T>
-    SharedQueue<T>::SharedQueue(){}
+    // template <typename T>
+    // SharedQueue<T>::SharedQueue(){}
 
     template <typename T>
     SharedQueue<T>::~SharedQueue(){}

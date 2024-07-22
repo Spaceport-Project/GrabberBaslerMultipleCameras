@@ -1,0 +1,498 @@
+6 CAMERAS
+
+1. Camera, Average framerate(in grabbed event handler): 30.1744 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.1743 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.2276 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.2915 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.2809 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.5271 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0116 fbs.
+5. Camera, Average framerate(in grabbed event handler): 0. Camera, Average framerate(in grabbed event handler29.991 fbs.
+): 30.0063 fbs.
+4. Camera, Average framerate(in grabbed event handler): 329.9816 fbs.
+. Camera, Average framerate(in grabbed event handler): 29.9853 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0092 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9303 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0032 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.998 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0006 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9938 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0.00181818
+2. cam, loss frame ratio:0.00181818
+3. cam, loss frame ratio:0.00181818
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0.00181818
+Total Loss Frame Ratio:0.00121212
+
+
+
+
+1. Camera, Average framerate(in grabbed event handler): 30.1607 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.1949 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.1915 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0844 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.1551 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1666 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0106 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9778 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9842 fbs.
+3. Camera, Average framerate(in grabbed event handler): 4. Camera, Average framerate(30.0917 fbs.
+in grabbed event handler): 30.1005 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9492 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9937 fbs.
+0. Camera, Average framerate(in grabbed event handler): 5. Camera, Average framerate(in grabbed event handler): 30.0033 fbs.
+30.0021 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0007 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0637 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0.00181818
+5. cam, loss frame ratio:0
+Total Loss Frame Ratio:0.00030303
+
+
+3. Camera, Average framerate(in grabbed event handler): 30.2127 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.2127 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.2201 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.2133 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.2215 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.1388 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9963 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.993 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9885 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.914 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0015 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.082 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9958 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.985 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.0026 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.984 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.0596 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9966 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+Total Loss Frame Ratio:0
+
+
+0. Camera, Average framerate(in grabbed event handler): 1. Camera, Average framerate(in grabbed event handler): 5. Camera, Average framerate(30.198130.193 fbs.
+in grabbed event handler):  fbs.
+30.1961 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.2006 fbs.
+3. Camera, Average framerate(in grabbed event handler): 2. Camera, Average framerate(in grabbed event handler): 30.2426 fbs.
+30.1988 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9995 fbs.
+2. Camera, Average framerate(in grabbed event handler): 5. Camera, Average framerate(in grabbed event handler): 29.9858 fbs.
+29.9869 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9856 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9799 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9777 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0025 fbs.
+4. Camera, Average framerate(in grabbed event handler): 2. Camera, Average framerate(in grabbed event handler): 30.0148 fbs.
+30.0142 fbs.
+5. Camera, Average framerate(in grabbed event handler): 0. Camera, Average framerate(in grabbed event handler): 30.0142 fbs.
+30.0215 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0197 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+Total Loss Frame Ratio:0
+
+0. Camera, Average framerate(in grabbed event handler): 30.2719 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.1853 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.1808 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.3381 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.3347 fbs.
+1. Camera, Average framerate(in grabbed event handler): 32.4333 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9995 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9963 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9963 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9946 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9936 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0058 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9945 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9974 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0126 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0828 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.084 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9976 fbs.
+0. cam, loss frame ratio:0.00181818
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+Total Loss Frame Ratio:0.00030303
+
+1. Camera, Average framerate(in grabbed event handler): 30.1946 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.0886 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1829 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.2669 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.3358 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.441 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9791 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.0058 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9799 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9924 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0978 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9935 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.003 fbs.
+2. Camera, Average framerate(in grabbed event handler): 0. Camera, Average framerate(in grabbed event handler): 29.9996 fbs.
+30.0793 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9738 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9099 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9988 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+Total Loss Frame Ratio:0
+
+
+
+(0,00121212 + 0,00030303 + 0 + 0 + 0,00030303 + 0)/6 =  0,00030303 - Total # of Frames = 550*6 * (6 Trials)
+
+(18÷1800 + 10÷1800 + 0 + 0 + 0 + 0) /6 = 0,002592593 - Total # of Frames = 300*6 * (6 Trials) - Firat's
+
+
+7 CAMERAS
+
+4. Camera, Average framerate(in grabbed event handler): 1. Camera, Average framerate(in grabbed event handler): 30.1846 fbs.
+28.9772 fbs.
+3. Camera, Average framerate(in grabbed event handler): 28.7807 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.7735 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.1703 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1743 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.2614 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9439 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0182 fbs.
+2. Camera, Average framerate(in grabbed event handler1. Camera, Average framerate(in grabbed event handler): ): 30.0069 fbs.
+29.9985 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0045 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.0047 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.012 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9896 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.997 fbs.
+0. Camera, Average framerate(4. Camera, Average framerate(in grabbed event handler): in grabbed event handler): 29.9977 fbs.
+30.0762 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9943 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.0088 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.9087 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0.0181818
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0.0127273
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0.00363636
+6. cam, loss frame ratio:0
+Total Loss Frame Ratio:0.00493506
+
+
+4. Camera, Average framerate(in grabbed event handler): 30.1761 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.1728 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.1659 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.1649 fbs.
+2. Camera, Average framerate(in grabbed event handler): 28.0028 fbs.
+1. Camera, Average framerate(in grabbed event handler): 31.3803 fbs.
+0. Camera, Average framerate(in grabbed event handler): 32.4868 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9205 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0106 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.0072 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9993 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.8934 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9983 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9921 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.096 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9983 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.9085 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0215 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1059 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.0318 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9394 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0.0127273
+2. cam, loss frame ratio:0.02
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+6. cam, loss frame ratio:0.00181818
+Total Loss Frame Ratio:0.00493506
+
+
+
+5. Camera, Average framerate(in grabbed event handler): 30.181 fbs.
+2. Camera, Average framerate(in grabbed event handler): 27.7629 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.1522 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.1985 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.204 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.193 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.1268 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.997 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9958 fbs.
+6. Camera, Average framerate(in grabbed event handler): 28.953 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0926 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0226 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.021 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9696 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0184 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.012 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.089 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9992 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9982 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9771 fbs.
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0
+2. cam, loss frame ratio:0.0218182
+3. cam, loss frame ratio:0
+4. cam, loss frame ratio:0
+5. cam, loss frame ratio:0
+6. cam, loss frame ratio:0.00909091
+Total Loss Frame Ratio:0.00441558
+
+(0,00441558 +  0,00493506 + 0,00493506 )÷3 = 0,0047619 Total # of Frames = 550*7 * (3 Trials)
+
+8 CAMERAS
+
+5. Camera, Average framerate(in grabbed event handler): 30.0301 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.6239 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9859 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1379 fbs.
+6. Camera, Average framerate(in grabbed event handler): 27.434 fbs.
+7. Camera, Average framerate(in grabbed event handler): 28.6908 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.973 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9576 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.0265 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.2305 fbs.
+4. Camera, Average framerate(in grabbed event handler): 25.3678 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0648 fbs.
+6. Camera, Average framerate(in grabbed event handler): 31.1879 fbs.
+
+0. cam, loss frame ratio:0.0163636
+1. cam, loss frame ratio:0.0127273
+2. cam, loss frame ratio:0.00181818
+3. cam, loss frame ratio:0.06
+4. cam, loss frame ratio:0.0436364
+5. cam, loss frame ratio:0.00545455
+6. cam, loss frame ratio:0.0363636
+7. cam, loss frame ratio:0.0109091
+Total Loss Frame Ratio:0.0234091
+
+
+2. Camera, Average framerate(in grabbed event handler): 30.1666 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.948 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.348 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9503 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.7611 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.7065 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.9108 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.9316 fbs.
+2. Camera, Average framerate(in grabbed event handler): 28.8833 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9586 fbs.
+6. Camera, Average framerate(in grabbed event handler): 28.951 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.896 fbs.
+5. Camera, Average framerate(in grabbed event handler): 28.5698 fbs.
+4. Camera, Average framerate(in grabbed event handler): 28.4174 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.2122 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1882 fbs.
+0. Camera, Average framerate(in grabbed event handler): 27.9623 fbs.
+
+0. cam, loss frame ratio:0.0127273
+1. cam, loss frame ratio:0.00181818
+2. cam, loss frame ratio:0.00909091
+3. cam, loss frame ratio:0.0509091
+4. cam, loss frame ratio:0.0945455
+5. cam, loss frame ratio:0.0418182
+6. cam, loss frame ratio:0.0363636
+7. cam, loss frame ratio:0.0218182
+Total Loss Frame Ratio:0.0336364
+
+
+6. Camera, Average framerate(in grabbed event handler): 29.9952 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9914 fbs.
+5. Camera, Average framerate(in grabbed event handler): 23.5863 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9789 fbs.
+0. Camera, Average framerate(in grabbed event handler): 28.78 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0802 fbs.
+7. Camera, Average framerate(in grabbed event handler): 28.1372 fbs.
+4. Camera, Average framerate(in grabbed event handler): 31.3128 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9028 fbs.
+3. Camera, Average framerate(in grabbed event handler): 28.6382 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.0216 fbs.
+0. Camera, Average framerate(in grabbed event handler): 28.741 fbs.
+5. Camera, Average framerate(in grabbed event handler): 28.537 fbs.
+1. Camera, Average framerate(in grabbed event handler): 25.0376 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.1014 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.4249 fbs.
+
+0. cam, loss frame ratio:0.0254545
+1. cam, loss frame ratio:0.0381818
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0.0145455
+4. cam, loss frame ratio:0.3
+5. cam, loss frame ratio:0.0854545
+6. cam, loss frame ratio:0
+7. cam, loss frame ratio:0.316364
+Total Loss Frame Ratio:0.0975
+
+
+
+5. Camera, Average framerate(in grabbed event handler): 30.1767 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.5952 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.1959 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.1934 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.2209 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.0854 fbs.
+7. Camera, Average framerate(in grabbed event handler): 30.0789 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.5171 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.9811 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9968 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.7931 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9934 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9983 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.9887 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.9782 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9932 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0083 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.7534 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0835 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.9924 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9927 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.13577. Camera, fbs.
+ Average framerate(in grabbed event handler): 30.1283 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9925 fbs.
+
+0. cam, loss frame ratio:0.00181818
+1. cam, loss frame ratio:0.00545455
+2. cam, loss frame ratio:0
+3. cam, loss frame ratio:0.00181818
+4. cam, loss frame ratio:0.0109091
+5. cam, loss frame ratio:0
+6. cam, loss frame ratio:0
+7. cam, loss frame ratio:0
+Total Loss Frame Ratio:0.0025
+
+
+5. Camera, Average framerate(in grabbed event handler): 30.1788 fbs.
+6. Camera, Average framerate(in grabbed event handler): 28.3597 fbs.
+7. Camera, Average framerate(in grabbed event handler): 30.1533 fbs.
+2. Camera, Average framerate(in grabbed event handler): 30.0872 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.2646 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.2133 fbs.
+3. Camera, Average framerate(in grabbed event handler): 27.2221 fbs.
+1. Camera, Average framerate(in grabbed event handler): 28.4042 fbs.
+6. Camera, Average framerate(in grabbed event handler): 27.1772 fbs.
+7. Camera, Average framerate(in grabbed event handler): 30.1066 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9902 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.1862 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.9975 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.005 fbs.
+1. Camera, Average framerate(in grabbed event handler): 30.0054 fbs.
+2. Camera, Average framerate(in grabbed event handler): 28.2682 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.9245 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.5979 fbs.
+5. Camera, Average framerate(in grabbed event handler): 28.9731 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.7977 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.9697 fbs.
+4. Camera, Average framerate(in grabbed event handler): 29.8536 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.8984 fbs.
+1. Camera, Average framerate(in grabbed event handler): 27.6796 fbs.
+
+0. cam, loss frame ratio:0
+1. cam, loss frame ratio:0.0236364
+2. cam, loss frame ratio:0.0181818
+3. cam, loss frame ratio:0.0290909
+4. cam, loss frame ratio:0.00181818
+5. cam, loss frame ratio:0.0163636
+6. cam, loss frame ratio:0.0490909
+7. cam, loss frame ratio:0
+Total Loss Frame Ratio:0.0172727
+
+
+2. Camera, Average framerate(in grabbed event handler): 26.7328 fbs.
+5. Camera, Average framerate(in grabbed event handler): 29.8522 fbs.
+7. Camera, Average framerate(in grabbed event handler): 22.9982 fbs.
+4. Camera, Average framerate(in grabbed event handler): 28.3362 fbs.
+3. Camera, Average framerate(in grabbed event handler): 31.2605 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.3047 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.4903 fbs.
+0. Camera, Average framerate(in grabbed event handler): 27.531 fbs.
+2. Camera, Average framerate(in grabbed event handler): 31.4082 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.7871 fbs.
+4. Camera, Average framerate(in grabbed event handler): 26.1159 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.9269 fbs.
+5. Camera, Average framerate(in grabbed event handler): 24.121 fbs.
+6. Camera, Average framerate(in grabbed event handler): 28.6722 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.2211 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.0805 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.7399 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.959 fbs.
+4. Camera, Average framerate(in grabbed event handler): 28.8072 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.963 fbs.
+5. Camera, Average framerate(in grabbed event handler): 20.9826 fbs.
+6. Camera, Average framerate(in grabbed event handler): 30.012 fbs.
+1. Camera, Average framerate(in grabbed event handler): 25.5151 fbs.
+0. cam, loss frame ratio:0.0436364
+1. cam, loss frame ratio:0.0436364
+2. cam, loss frame ratio:0.02
+3. cam, loss frame ratio:0.0109091
+4. cam, loss frame ratio:0.0672727
+5. cam, loss frame ratio:0.132727
+6. cam, loss frame ratio:0.0109091
+7. cam, loss frame ratio:0.0690909
+Total Loss Frame Ratio:0.0497727
+
+
+
+7. Camera, Average framerate(in grabbed event handler): 27.9958 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.1912 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.7945 fbs.
+0. Camera, Average framerate(in grabbed event handler): 30.1759 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.1733 fbs.
+4. Camera, Average framerate(in grabbed event handler): 16.7753 fbs.
+1. Camera, Average framerate(in grabbed event handler): 28.6731 fbs.
+2. Camera, Average framerate(in grabbed event handler): 29.3773 fbs.
+4. Camera, Average framerate(in grabbed event handler): 27.1712 fbs.
+3. Camera, Average framerate(in grabbed event handler): 29.0634 fbs.
+5. Camera, Average framerate(in grabbed event handler): 30.032 fbs.
+7. Camera, Average framerate(in grabbed event handler): 30.0164 fbs.
+1. Camera, Average framerate(in grabbed event handler): 29.9704 fbs.
+0. Camera, Average framerate(in grabbed event handler): 28.6545 fbs.
+6. Camera, Average framerate(in grabbed event handler): 29.7342 fbs.
+2. Camera, Average framerate(in grabbed event handler): 26.973 fbs.
+4. Camera, Average framerate(in grabbed event handler): 30.0719 fbs.
+7. Camera, Average framerate(in grabbed event handler): 29.9594 fbs.
+5. Camera, Average framerate(in grabbed event handler): 25.543 fbs.
+0. Camera, Average framerate(in grabbed event handler): 29.7067 fbs.
+1. Camera, Average framerate(in grabbed event handler): 28.4288 fbs.
+3. Camera, Average framerate(in grabbed event handler): 30.0118 fbs.
+6. Camera, Average framerate(in grabbed event handler): 28.1091 fbs.
+2. Camera, Average framerate(in grabbed event handler): 31.2547 f
+
+
+0. cam, loss frame ratio:0.0127273
+1. cam, loss frame ratio:0.0309091
+2. cam, loss frame ratio:0.0290909
+3. cam, loss frame ratio:0.00909091
+4. cam, loss frame ratio:0.149091
+5. cam, loss frame ratio:0.04
+6. cam, loss frame ratio:0.0290909
+7. cam, loss frame ratio:0.02
+Total Loss Frame Ratio:0.04
+
+
+(0,04+0,049+0,017+0,0975+0,0025)/5 = 0,0412 - Total # of Frames = 550*8 * (5 Trials)
+
+(108÷2400+36÷2400+500÷2400)/3 = 0,089444444 - Total # of Frames = 300*8 * (3 Trials) - Firat's

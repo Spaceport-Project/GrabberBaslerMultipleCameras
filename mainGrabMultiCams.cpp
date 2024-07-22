@@ -8,13 +8,21 @@
 
 
 
-bool BaslerMultipleCameras::m_bExit = false;
+// std::atomic<bool> BaslerMultipleCameras::m_bExit{false};
+bool BaslerMultipleCameras::m_bExit=false;
 
+// WaitObjectEx BaslerMultipleCameras::m_waitObject(WaitObjectEx::Create());
+// std::atomic<bool> BayerToH264ConverterNvidiaCodec::exit_flag{false};
 void ctrlC (int)
 {
   
   printf ("\nCtrl-C detected, exit condition set to true.\n");
-  BaslerMultipleCameras::m_bExit= true;
+  // BaslerMultipleCameras::m_bExit.store(true, std::memory_order_release);
+  BaslerMultipleCameras::m_bExit = true;
+
+  // BaslerMultipleCameras::m_waitObject.Signal();
+
+
 }
 
 int main(int argc, char *argv[]) {
@@ -25,6 +33,8 @@ int main(int argc, char *argv[]) {
         return -1;
 
     } 
+    gst_init(&argc, &argv);
+
     std::string cameraSettingsFile(argv[1]);
 
 
@@ -58,10 +68,10 @@ int main(int argc, char *argv[]) {
     }
 
 
-    if (baslerCams->Save2BufferThenDisk() != exit_code) 
-    {
-      return -1;
-    }
+    // if (baslerCams->Save2BufferThenDisk() != exit_code) 
+    // {
+    //   return -1;
+    // }
 
    
      
@@ -72,7 +82,8 @@ int main(int argc, char *argv[]) {
     
     baslerCams->CloseDevices();
    
-    
+    PylonTerminate();
+
 
    
 

@@ -5,6 +5,7 @@
 #include <vector>
 #include <cassert>
 #include <atomic>
+#include <map>
 // #include <cuda.h>
 // #include <cuda_runtime.h>
 #include <mutex>
@@ -20,7 +21,7 @@ extern "C" {
 #include <libavcodec/avcodec.h>
 }
 
-class BayerToH264Converter{
+class BayerToH264ConverterFFMPEG{
 public:
         struct PacketComparator {
 
@@ -47,7 +48,7 @@ public:
                 }
             }
     };
-    BayerToH264Converter(unsigned int device_num, unsigned int input_width, unsigned int input_height):
+    BayerToH264ConverterFFMPEG(unsigned int device_num, unsigned int input_width, unsigned int input_height):
         width_(input_width), 
         height_(input_height),
         num_devices_(device_num)
@@ -98,7 +99,7 @@ public:
 
     }
 
-    ~BayerToH264Converter() 
+    ~BayerToH264ConverterFFMPEG() 
     {
        close();
     }
@@ -106,9 +107,11 @@ public:
     bool initializeContexts(const char* suffix_file_name, std::map<int, std::string> mapSerials) 
     {
         
-        outputFile.open("image_stream_bayer8.bin", std::ios::binary);
+        
         // const AVOutputFormat *poutputFormat = av_guess_format(NULL, ".mkv", "video/x-matroska");
         for (unsigned int i = 0; i < num_devices_;i++){
+            if (i == 0)
+                outputFile.open("image_stream_rgba.bin", std::ios::binary);
             std::string file_name = std::string(suffix_file_name) + "_" + mapSerials[i]  + ".mp4" ;
 
             int ret = avformat_alloc_output_context2(&format_contexts[i], nullptr, nullptr, file_name.c_str());
@@ -161,7 +164,7 @@ public:
             }
             // codec_contexts_.back()->codec_id = AV_CODEC_ID_H264;
             codec_contexts_.back()->codec_type = AVMEDIA_TYPE_VIDEO;
-            codec_contexts_.back()->pix_fmt = AV_PIX_FMT_YUV420P;
+            codec_contexts_.back()->pix_fmt = AV_PIX_FMT_RGB0;
             codec_contexts_.back()->width = width_;
             codec_contexts_.back()->height = height_;
             codec_contexts_.back()->time_base = {1,30} ;
@@ -214,7 +217,7 @@ public:
 
             sws_ctx_[i] = sws_getContext(
                     width_, height_, AV_PIX_FMT_BAYER_RGGB8,
-                width_, height_, AV_PIX_FMT_YUV420P,
+                width_, height_, AV_PIX_FMT_RGB0,
                 SWS_BILINEAR, nullptr, nullptr, nullptr
             );
 
@@ -229,17 +232,18 @@ public:
     }
 
    
-    bool convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int64_t time_stamp, int frame_num) 
+    bool convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int64_t time_stamp) 
     {
         //  assert( n_curr_camera < num_devices_  && "# of Current Camera must not be less than device number");
 
         //  uint8_t *data =  (uint8_t*)av_malloc(width_ * height_) ;
         //  memcpy(data, bayerData,  width_ * height_);
-        outputFile.write((const char*)bayerData, width_*height_);
+        // if (n_curr_cam_index == 0) 
+        //     outputFile.write((const char*)bayerData, width_*height_);
         
         bool ret_flag = false; 
         
-
+        clock_t start = clock();
         AVFrame *input_frame = av_frame_alloc();
         if (!input_frame) 
         {
@@ -272,7 +276,7 @@ public:
 
         yuv_frame->width = width_;
         yuv_frame->height = height_;
-        yuv_frame->format = AV_PIX_FMT_YUV420P;
+        yuv_frame->format = AV_PIX_FMT_RGB0;
 
         int ret = av_frame_get_buffer(input_frame, 32);
         if (ret < 0) 
@@ -316,6 +320,28 @@ public:
         sws_scale(sws_ctx_[n_curr_cam_index], input_frame->data, input_frame->linesize, 0,
                   height_, yuv_frame->data, yuv_frame->linesize);
 
+
+         clock_t stop = clock();
+
+    // Calculate the elapsed time in seconds
+        double elapsed = ((double)(stop - start)) / CLOCKS_PER_SEC;
+
+        if (n_curr_cam_index == 0) printf("Time taken by function: %f seconds\n", elapsed);
+        if (n_curr_cam_index == 0) {
+            FILE *file = fopen("output.raw", "wb");
+
+            int num_bytes = av_image_get_buffer_size((AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
+            uint8_t *buffer = (u_int8_t *)av_malloc(num_bytes * sizeof(uint8_t));
+            av_image_copy_to_buffer(buffer, num_bytes, (const uint8_t * const *)yuv_frame->data, (const int *)yuv_frame->linesize, (AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
+            fwrite(buffer, 1, num_bytes, file);
+
+            fclose(file);
+            av_free(buffer);
+
+        }
+            // outputFile.write((const char*)yuv_frame->data, width_*height_*4);
+        return true;
+
         ret = avcodec_send_frame(codec_contexts_[n_curr_cam_index], yuv_frame);
         if (ret < 0) 
         {
@@ -327,7 +353,9 @@ public:
             return ret_flag;
         }
 
+        
         pkts_[n_curr_cam_index] = av_packet_alloc();
+
             
         ret = avcodec_receive_packet(codec_contexts_[n_curr_cam_index], pkts_[n_curr_cam_index]);
         // printf("%d.camera's counter:  %d \n", n_curr_camera, counter_);
@@ -343,7 +371,7 @@ public:
           
             // if (n_curr_cam_index) printf("timestamp:%I64d, %d\n", time_stamp, frame_num);
             // pkts_[n_curr_cam_index]->pts = av_rescale_q(time_stamp, {1, 1000}, video_streams_[n_curr_cam_index]->time_base);
-            pkts_[n_curr_cam_index]->pts =  frame_num; // Presentation timestamp
+            pkts_[n_curr_cam_index]->pts =  time_stamp; // Presentation timestamp
 
             av_packet_rescale_ts(pkts_[n_curr_cam_index], codec_contexts_[n_curr_cam_index]->time_base, video_streams_[n_curr_cam_index]->time_base);
             pkts_[n_curr_cam_index]->dts = pkts_[n_curr_cam_index]->pts;
@@ -472,7 +500,7 @@ private:
     std::vector<std::priority_queue<AVPacket*, std::vector<AVPacket*>, PacketComparator>>  vec_queue_pkts_;
 
     std::vector<AVStream *> video_streams_;
-        std::vector<SwsContext *> sws_ctx_ ;
+    std::vector<SwsContext *> sws_ctx_ ;
     std::vector<AVPacket*> pkts_;
     unsigned int num_devices_;
     unsigned int frameIndex = 0;

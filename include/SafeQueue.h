@@ -150,12 +150,22 @@ public:
     }
 
     // Add an element to the queue.
-    void enqueue(T t)
+    void enqueue(const T& t)
     {
-        std::lock_guard<std::mutex> lock(m);
+        std::unique_lock<std::mutex> lock(m);
         q.push(t);
+        lock.unlock();
         c.notify_one();
     }
+    void enqueue(T&& t)
+    {
+        std::unique_lock<std::mutex> lock(m);
+        q.push(std::move(t));
+        lock.unlock();     // unlock before notificiation to minimize mutex con
+        c.notify_one(); // notify one waiting thread
+
+    }
+
 
     // Get the front element.
     // If the queue is empty, wait till a element is avaiable.
@@ -173,8 +183,9 @@ public:
     }
     int size() {
         std::unique_lock<std::mutex> lock(m);
-
-        return q.size();
+        std::size_t size = q.size();
+        lock.unlock();
+        return size;
     }
 
 private:

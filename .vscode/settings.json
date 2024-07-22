@@ -80,6 +80,19 @@
         "__tuple": "cpp",
         "filesystem": "cpp",
         "queue": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "any": "cpp",
+        "strstream": "cpp",
+        "forward_list": "cpp",
+        "unordered_set": "cpp",
+        "future": "cpp",
+        "scoped_allocator": "cpp",
+        "valarray": "cpp",
+        "*.ipp": "cpp",
+        "locale": "cpp",
+        "__split_buffer": "cpp",
+        "ios": "cpp"
     }
 }

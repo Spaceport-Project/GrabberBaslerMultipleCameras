@@ -223,6 +223,7 @@ int main( int /*argc*/, char* /*argv*/[] )
             CBaslerUniversalGrabResultPtr ptrGrabResult;
             // actionTime  += 500000000;
             // pTL->IssueActionCommand(DeviceKey, GroupKey, AllGroupMask, subnet );
+            
             // pTL->IssueScheduledActionCommand(DeviceKey, GroupKey, AllGroupMask, actionTime);
             // pTL->IssueScheduledActionCommand(4711, 1, 0xffffffff, actionTime, "192.168.18.255");
 

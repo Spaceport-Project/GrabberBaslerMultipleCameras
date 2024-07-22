@@ -1,4 +1,5 @@
 build
+records/
 *.jpg
 *.mp4
 *.png

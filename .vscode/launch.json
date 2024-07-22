@@ -3,13 +3,37 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [{
+    "configurations": [
+        {
+            "name": "GST Sample2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/gst_sample6",
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
         "name": "Grab Basler Cameras",
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build/mainGrabBaslerMultiCamsDebug",
         "args": [
-            "/home/spaceport1/Softwares/GrabberBaslerMultipleCameras/CameraSettings.json"
+            "/home/hamit/Softwares/GrabberBaslerMultipleCameras/CameraSettings.json"
         ],
        
         "stopAtEntry": false,
@@ -29,5 +53,29 @@
                 "ignoreFailures": true
             }
         ]
-    },]
+    },
+    {
+        "name": "Open Close Cameras",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build/open_close_cameras",
+        "stopAtEntry": false,
+        "cwd": "${fileDirname}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "setupCommands": [
+            {
+                "description": "Enable pretty-printing for gdb",
+                "text": "-enable-pretty-printing",
+                "ignoreFailures": true
+            },
+            {
+                "description": "Set Disassembly Flavor to Intel",
+                "text": "-gdb-set disassembly-flavor intel",
+                "ignoreFailures": true
+            }
+        ]
+    }
+    ]
 }
