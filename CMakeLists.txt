@@ -171,6 +171,10 @@ link_directories(${GSTLIBS_LIBRARY_DIRS})
 # target_link_libraries( gst_sample7 PRIVATE  ${GSTLIBS_LIBRARIES}  PkgConfig::DEPS ${GTK3_LIBRARIES} )
 # install( TARGETS gst_sample7 )
 
+add_executable( gst_sample8 gst_sample8.cpp)
+target_link_libraries( gst_sample8 PRIVATE  ${GSTLIBS_LIBRARIES}  PkgConfig::DEPS ${GTK3_LIBRARIES} )
+install( TARGETS gst_sample8 )
+
 
 # add_executable( pylonsrc pylonsrc.cpp)
 # target_link_libraries( pylonsrc PRIVATE  ${GSTLIBS_LIBRARIES}  PkgConfig::DEPS ${GTK3_LIBRARIES} )

@@ -10,6 +10,7 @@
 
 // std::atomic<bool> BaslerMultipleCameras::m_bExit{false};
 bool BaslerMultipleCameras::m_bExit=false;
+bool BayerToH264ConverterGST::m_bExit=false;
 
 // WaitObjectEx BaslerMultipleCameras::m_waitObject(WaitObjectEx::Create());
 // std::atomic<bool> BayerToH264ConverterNvidiaCodec::exit_flag{false};
@@ -18,7 +19,8 @@ void ctrlC (int)
   
   printf ("\nCtrl-C detected, exit condition set to true.\n");
   // BaslerMultipleCameras::m_bExit.store(true, std::memory_order_release);
-  BaslerMultipleCameras::m_bExit = true;
+  // BaslerMultipleCameras::m_bExit = true;
+   BayerToH264ConverterGST::m_bExit =true;
 
   // BaslerMultipleCameras::m_waitObject.Signal();
 

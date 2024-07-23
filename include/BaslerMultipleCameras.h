@@ -72,15 +72,15 @@ do \
 }while(false)
 
 
-struct DATA{
+// struct DATA{
  
-    // std::shared_ptr<uint8_t[]>  image;
-    u_int8_t *image;
-    // std::vector<u_int8_t> image;
-    u_int64_t timeStamp=0;
-    size_t imageSize=0;
-    std::string serialNumber;
-};
+//     // std::shared_ptr<uint8_t[]>  image;
+//     u_int8_t *image;
+//     // std::vector<u_int8_t> image;
+//     u_int64_t timeStamp=0;
+//     size_t imageSize=0;
+//     std::string serialNumber;
+// };
 
 
 
@@ -166,6 +166,7 @@ private:
     // std::vector<NppStreamContext> npp_stream_contextes_;
     std::vector<unsigned int> m_uLossRatioVec_;
     std::vector<unsigned int> m_uTotalNumImgVec_;
+    std::vector<DATA> vec_data_struct;
 
     // std::vector<std::unique_ptr<NvEncoderCuda>> pEncs_;
 

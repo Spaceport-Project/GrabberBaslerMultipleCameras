@@ -39,22 +39,22 @@
 // #define ENSURE(expr) do { if (expr) break; std::printf("Error: %s\n", #expr); std::abort(); } while (false)
 
 // FBS Calculator
-thread_local unsigned count = 0;
-thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-#define FPS_CALC(_WHAT_, ncurrCameraIndex) \
-do \
-{ \
-    double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
-    ++count; \
-    if (now - last >= 1.0) \
-    { \
-      std::cerr << "\033[1;31m";\
-      std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
-      std::cerr << "\033[0m";\
-      count = 0; \
-      last = now; \
-    } \
-} while(false)
+// thread_local unsigned count = 0;
+// thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+// #define FPS_CALC(_WHAT_, ncurrCameraIndex) \
+// do \
+// { \
+//     double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
+//     ++count; \
+//     if (now - last >= 1.0) \
+//     { \
+//       std::cerr << "\033[1;31m";\
+//       std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
+//       std::cerr << "\033[0m";\
+//       count = 0; \
+//       last = now; \
+//     } \
+// } while(false)
 
 
  
@@ -201,7 +201,7 @@ public:
             }
             cond_vec_[cameraIndex].notify_one();
 
-            FPS_CALC("in grabbed event handler", cameraIndex);
+            // FPS_CALC("in grabbed event handler", cameraIndex);
             
 
             // DATA data = {tmpBuffer, timeStamp, bufferSize, serialNumber};
@@ -322,6 +322,7 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         m_cProduceConsumeConds_ = condVector(m_uDeviceNum);
         m_uLossRatioVec_.resize(m_uDeviceNum, 0);
         m_uTotalNumImgVec_.resize(m_uDeviceNum, 0);
+        vec_data_struct.resize(m_uDeviceNum);
         // cuda_streams_.resize(m_uDeviceNum, nullptr);
         // npp_stream_contextes_.resize(m_uDeviceNum, {});
         // for (int i = 0; i < m_uDeviceNum; i++) {
@@ -541,16 +542,19 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 //Thread function with GetImageBuffer API
 int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 {
- 
-    converter->InitializeSingleGstPipeline(nCurCameraIndex);
+
+    vec_data_struct[nCurCameraIndex].cam = &m_bsCameras[nCurCameraIndex];
+    converter->InitializeSingleGstPipeline(nCurCameraIndex, &vec_data_struct[nCurCameraIndex]);
     // std::this_thread::sleep_until(m_tWakeupTime);
     // u_int8_t *tmpBuffer = (u_int8_t*)malloc(m_uHeight* m_uWidth);
     m_bsCameras[nCurCameraIndex].StartGrabbing( GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
     unsigned int i = 0;
     //   CBaslerUniversalGrabResultPtr ptrGrabResult;
     const int DefaultTimeout_ms = 5000;
+    converter->CloseSingleGstPipeline(nCurCameraIndex);
 
-   
+
+    return 1;
     // std::unique_lock<std::mutex> lock(m_mEndGrabMutexes_[nCurCameraIndex]);
 
     // m_cEndGrabConds_[nCurCameraIndex].wait(lock, [&](){
@@ -559,6 +563,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
     // });
     // WaitObject::Sleep(20000);
 //     m_waitObject.WaitEx(1000000,true);
+    // vec_data_struct[nCurCameraIndex]->image = new uint8_t[m_uHeight* m_uWidth];
+
 
     CBaslerUniversalGrabResultPtr ptrGrabResult;
     while(/*!m_bExit.load(std::memory_order_acquire)*/ !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
@@ -595,7 +601,12 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             // std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
             
             // if (i > 100) 
-            converter->push_data2(pImageBuffer, nCurCameraIndex);
+            // converter->push_data2(pImageBuffer, nCurCameraIndex);
+            // vec_data_struct[nCurCameraIndex]->image = pImageBuffer;
+            vec_data_struct[nCurCameraIndex].image = new uint8_t[m_uHeight* m_uWidth];
+            vec_data_struct[nCurCameraIndex].imageSize = bufferSize;
+
+            std::copy(pImageBuffer, pImageBuffer + bufferSize, vec_data_struct[nCurCameraIndex].image);
 
             // converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
             // memcpy(tmpBuffer, pImageBuffer, bufferSize);
@@ -614,7 +625,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             // DATA data{tmpSharedptr, timeStamp, bufferSize, serialNumber};
             // m_queueGrabRes[nCurCameraIndex].enqueue(data);
              // if (nCurCameraIndex == 0) 
-            FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex);
+            // FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex);
         }
         else
         {
@@ -636,7 +647,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
     } 
     // converter->StartSingleGstPipeline(nCurCameraIndex);
 
-    converter->CloseSingleGstPipeline(nCurCameraIndex);
+    // converter->CloseSingleGstPipeline(nCurCameraIndex);
    
 
     // BayerToH264ConverterNvidiaCodec::exit_flag.store(true);
@@ -698,7 +709,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 5;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 3;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;

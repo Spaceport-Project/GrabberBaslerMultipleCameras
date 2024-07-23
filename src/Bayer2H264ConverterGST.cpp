@@ -1,5 +1,25 @@
 #include "Bayer2H264ConverterGST.h"
 
+thread_local unsigned count = 0;
+thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+#define FPS_CALC(_WHAT_, ncurrCameraIndex) \
+do \
+{ \
+    double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
+    ++count; \
+    if (now - last >= 1.0) \
+    { \
+      std::cerr << "\033[1;31m";\
+      std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
+      std::cerr << "\033[0m";\
+      count = 0; \
+      last = now; \
+    } \
+} while(false)
+
+
+// struct DATA;
+
 BayerToH264ConverterGST::BayerToH264ConverterGST(std::map<int, std::string> mapSerialNums, unsigned int input_width, unsigned int input_height):
     width_(input_width), 
     height_(input_height),
@@ -29,7 +49,7 @@ BayerToH264ConverterGST::BayerToH264ConverterGST(std::map<int, std::string> mapS
         main_loops_.resize(num_devices_, nullptr);
         rets_.resize(num_devices_);
            
-        datas_.resize(num_devices_);
+        // datas_.resize(num_devices_);
         results_.resize(num_devices_, false);
         frame_cnts.resize(num_devices_, 0);
         // caps_ = nullptr;
@@ -58,20 +78,95 @@ bool BayerToH264ConverterGST::CloseAllGstPipelines() {
     return true;
 
 }
+    // void BayerToH264ConverterGST::start_feed (GstElement * pipeline, guint size, DATA *data_struct)
+    // {
+        
+   
+ 
+    //     if (data_struct->source_id == 0) {
+    //          g_print ("start feeding\n");
+    //         data_struct->source_id =  g_idle_add ((GSourceFunc) push_buffer, data_struct);
+    //     }
+    // }
+
+  void BayerToH264ConverterGST::on_need_callback(GstElement *appsrc, guint unused_size,  DATA *data_struct) {
+
+
+    if (BayerToH264ConverterGST::m_bExit == true)
+        gst_element_send_event(data_struct->pipeline, gst_event_new_eos());
+
+    static  guint64 timestamp = 0;
+    const int DefaultTimeout_ms = 5000;
+    
+    CBaslerUniversalGrabResultPtr ptrGrabResult;
+    data_struct->cam->RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
+    intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
+    if (ptrGrabResult->GrabSucceeded())
+    {
+        
+        // if (i %10 == 0 /*&& (nCurCameraIndex ==2 || nCurCameraIndex ==1) */) 
+        //     std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
+        
+        uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
+        size_t bufferSize = ptrGrabResult->GetBufferSize();
+        u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
+        const std::string serialNumber{ data_struct->cam->GetDeviceInfo().GetSerialNumber().c_str()};
+    
+
+        GstBuffer *buffer = nullptr;
+        GstFlowReturn ret;
+        GstMapInfo map;
+        // DATA *data_struct = static_cast<DATA*>(user_data);
+        size_t size_ = bufferSize ; //data_struct->imageSize;
+        // std::cout<<"camera size:"<<bufferSize<<std::endl;
+        // guint8* camera_buffer = data_struct->image;
+
+        // Allocate a new buffer
+        buffer = gst_buffer_new_allocate(NULL, size_, NULL);
+    
+        // Map the buffer and fill it with data from your camera SDK
+        gst_buffer_map(buffer, &map, GST_MAP_WRITE);
+        // Here you should copy your camera SDK buffer into map.data
+        memcpy(map.data, pImageBuffer, size_);
+        // memset(map.data, 0xff, size); // Dummy data for example
+        gst_buffer_unmap(buffer, &map);
+        
+        // buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY, camera_buffer, size_, 0, size_, nullptr, nullptr);
+
+        GST_BUFFER_PTS(buffer) = timestamp;
+        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, 30); // Adjust the framerate
+        timestamp += GST_BUFFER_DURATION(buffer);
+
+        g_signal_emit_by_name(appsrc, "push-buffer", buffer, &ret);
+        gst_buffer_unref(buffer);
+
+        if (ret != GST_FLOW_OK) {
+            std::cerr << "Error pushing buffer to appsrc" << std::endl;
+        }
+    } else
+    {
+        std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
+    }
+    FPS_CALC("Grabbing Buffer FPS",  data_struct->cam_index);
+     ptrGrabResult.Release();
+
+
+}
 
 bool BayerToH264ConverterGST::CloseSingleGstPipeline(unsigned int n_cam_index) {
 
     
-    gst_element_send_event(pipelines_[n_cam_index], gst_event_new_eos());
+    // gst_element_send_event(pipelines_[n_cam_index], gst_event_new_eos());
     g_main_loop_run(main_loops_[n_cam_index]);
     
-    // gst_object_unref(buses_[n_cam_index]);
+    g_main_loop_unref(main_loops_[n_cam_index]);
+
+    gst_object_unref(buses_[n_cam_index]);
 
     gst_element_set_state(pipelines_[n_cam_index], GST_STATE_NULL);
     // Clean up
     gst_object_unref(pipelines_[n_cam_index]);
     // g_main_loop_quit(main_loop);
-    g_main_loop_unref(main_loops_[n_cam_index]);
     return true;
 
 }
@@ -81,7 +176,7 @@ BayerToH264ConverterGST::~BayerToH264ConverterGST()
 //    close();
 }
 
-void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_index ){
+void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_index, DATA *data_struct){
 
     pipelines_[n_cam_index] = gst_pipeline_new("bayer-to-h264");
     sources_[n_cam_index] = gst_element_factory_make("appsrc", "source");
@@ -133,6 +228,10 @@ void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_ind
 
     // Configure appsrc
     // g_object_set(G_OBJECT(sources_[n_cam_index]), "caps", caps_[n_cam_index], "format", GST_FORMAT_TIME, NULL);
+    data_struct->appsrc = sources_[n_cam_index];
+    data_struct->pipeline = pipelines_[n_cam_index];
+    data_struct->cam_index = n_cam_index;
+    g_signal_connect(sources_[n_cam_index], "need-data", G_CALLBACK(&BayerToH264ConverterGST::on_need_callback), data_struct);
 
             // Start the pipeline
     int ret = gst_element_set_state(pipelines_[n_cam_index], GST_STATE_PLAYING);
@@ -141,10 +240,37 @@ void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_ind
         gst_object_unref(pipelines_[n_cam_index]);
         return ;
     }
+
+
     main_loops_[n_cam_index] = g_main_loop_new(NULL, FALSE);
     buses_[n_cam_index] = gst_element_get_bus(pipelines_[n_cam_index]);
-    gst_bus_add_watch(buses_[n_cam_index], BayerToH264ConverterGST::bus_call,  main_loops_[n_cam_index]);
-    gst_object_unref(buses_[n_cam_index]);
+    // gst_bus_add_watch(buses_[n_cam_index], BayerToH264ConverterGST::bus_call,  main_loops_[n_cam_index]);
+
+    gst_bus_add_watch(buses_[n_cam_index], [](GstBus *bus, GstMessage *msg, gpointer data) -> gboolean {
+        GMainLoop *loop = static_cast<GMainLoop*>(data);
+        switch (GST_MESSAGE_TYPE(msg)) {
+            case GST_MESSAGE_EOS:
+                std::cout << "End of stream" << std::endl;
+                g_main_loop_quit(loop);
+                break;
+            case GST_MESSAGE_ERROR: {
+                GError *err;
+                gchar *debug_info;
+                gst_message_parse_error(msg, &err, &debug_info);
+                std::cerr << "Error received from element " << GST_OBJECT_NAME(msg->src) << ": " << err->message << std::endl;
+                std::cerr << "Debugging information: " << (debug_info ? debug_info : "none") << std::endl;
+                g_clear_error(&err);
+                g_free(debug_info);
+                g_main_loop_quit(loop);
+                break;
+            }
+            default:
+                break;
+        }
+        return TRUE;
+    }, main_loops_[n_cam_index]);
+
+    // gst_object_unref(buses_[n_cam_index]);
 
     
 

@@ -55,10 +55,10 @@
         ]
     },
     {
-        "name": "Open Close Cameras",
+        "name": "gst sample",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/build/open_close_cameras",
+        "program": "${workspaceFolder}/build/gst_sample8",
         "stopAtEntry": false,
         "cwd": "${fileDirname}",
         "environment": [],
