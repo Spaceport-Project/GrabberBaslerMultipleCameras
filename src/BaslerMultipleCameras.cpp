@@ -350,10 +350,9 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 
 
  BaslerMultipleCameras::~BaslerMultipleCameras(){
-    // for (auto &st: npp_stream_contextes_)
-    //     cudaStreamDestroy(st.hStream);
-    //     // outfile.close();
-    }	   
+  
+    CloseDevices();
+}	   
 
 // Thread Function for save images on disk for every camera
 int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex)
@@ -542,10 +541,8 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 {
  
-    converter->InitializeSingleGstPipeline(nCurCameraIndex);
-    // std::this_thread::sleep_until(m_tWakeupTime);
     // u_int8_t *tmpBuffer = (u_int8_t*)malloc(m_uHeight* m_uWidth);
-    m_bsCameras[nCurCameraIndex].StartGrabbing( GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
+    m_bsCameras[nCurCameraIndex].StartGrabbing(m_uFrameNum, GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
     unsigned int i = 0;
     //   CBaslerUniversalGrabResultPtr ptrGrabResult;
     const int DefaultTimeout_ms = 5000;
@@ -571,18 +568,13 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
         if (ptrGrabResult->GrabSucceeded())
         {
            
-            // if (i %10 == 0 /*&& (nCurCameraIndex ==2 || nCurCameraIndex ==1) */) 
-            //     std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
+            //   std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
            
             uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
             size_t bufferSize = ptrGrabResult->GetBufferSize();
             u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
             const std::string serialNumber{m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetSerialNumber().c_str()};
-            // if (i > 250) {
-            //     break; 
-            //     m_bExit=true;
-            // }
-
+           
            {
         
 
@@ -595,9 +587,9 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             // std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
             
             // if (i > 100) 
-            converter->push_data2(pImageBuffer, nCurCameraIndex);
+            // converter->push_data2(pImageBuffer, nCurCameraIndex);
 
-            // converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
+            converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
             // memcpy(tmpBuffer, pImageBuffer, bufferSize);
 
 
@@ -634,14 +626,10 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
    
     } 
-    // converter->StartSingleGstPipeline(nCurCameraIndex);
-
-    converter->CloseSingleGstPipeline(nCurCameraIndex);
    
 
     // BayerToH264ConverterNvidiaCodec::exit_flag.store(true);
     // m_bExit=true;
-    // ratio[nCurCameraIndex] = float(cnt)/i;
     return 0;
 }
 
@@ -698,7 +686,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 5;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 12;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
@@ -844,6 +832,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     m_fExposureTime = pt.get<float>("ExposureTime");
     m_fAcquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
     m_fGain = pt.get<float>("Gain");
+    m_uFrameNum = pt.get<unsigned int>("FrameNum");
     m_sPixelFormat = pt.get<std::string>("PixelFormat");
     m_uPacketSize =  pt.get<unsigned int>("PacketSize");
     m_uPacketDelay = pt.get<unsigned int>("PacketDelay");
@@ -853,8 +842,8 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
     
     file.close();
-    // converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
-    converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
+    // converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
 
 
 
@@ -947,6 +936,8 @@ int BaslerMultipleCameras::CloseDevices()
 {
 
     try {
+        // for (int i = 0 ; i <m_uDeviceNum ; i++)
+        //     m_bsCameras[i].Close();
         m_bsCameras.Close(); 
         std::cout<<"Cameras Closed!"<<std::endl;
     }

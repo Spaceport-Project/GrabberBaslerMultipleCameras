@@ -29,8 +29,8 @@
 #include <pylon/gige/ActionTriggerConfiguration.h>
 #include <pylon/gige/BaslerGigEDeviceInfo.h>
 // #include "Bayer2H264ConverterFFMPEG.h"
-// #include "Bayer2H264ConverterNvidiaCodec.h"
-#include "Bayer2H264ConverterGST.h"
+#include "Bayer2H264ConverterNvidiaCodec.h"
+// #include "Bayer2H264ConverterGST.h"
 // #include "SharedQueue.h"
 #include "ImageBuffer.h"
 // #include "SafeVector.h"
@@ -39,8 +39,8 @@
 #include "BS_thread_pool.hpp" // BS::thread_pool
 #include "ThreadPool.h"
 
-// #include <ImagesCPU.h>
-// #include <ImagesNPP.h>
+#include <ImagesCPU.h>
+#include <ImagesNPP.h>
 
 #include "NvEncoderCuda.h"
 
@@ -117,8 +117,8 @@ private:
     threadVector            m_tWriteMP4Threads;
     condVector              m_cProduceConsumeConds_;
 
-    // std::unique_ptr<BayerToH264ConverterNvidiaCodec> converter;
-    std::unique_ptr<BayerToH264ConverterGST> converter;
+    std::unique_ptr<BayerToH264ConverterNvidiaCodec> converter;
+    // std::unique_ptr<BayerToH264ConverterGST> converter;
 
 
     std::mutex              m_mWriteMp4Mutex;
@@ -150,6 +150,7 @@ private:
     uint32_t m_iAllGroupMask;
     uint32_t m_iGroupKey;
     unsigned int m_uHeight ;
+    unsigned int m_uFrameNum;
     unsigned int m_uWidth ;
     unsigned int m_uPacketSize;
     unsigned int m_uPacketDelay;

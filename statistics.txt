@@ -1,0 +1,16 @@
+6 Cameras
+GPU %6
+Video Engine %14 
+
+15 Cameras
+GPU %20
+Video Engine %42
+
+22 Cameras
+GPU %20
+Video Engine %42
+
+
+24 Cameras
+GPU %20
+Video Engine %40

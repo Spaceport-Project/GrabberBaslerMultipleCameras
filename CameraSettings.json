@@ -7,5 +7,6 @@
     "Gain" : 20.0,
     "PacketSize": 1500,
     "PacketDelay": 1024,
+    "FrameNum":1000000,
     "PixelFormat": "PixelFormat_BayerRG8"
 }

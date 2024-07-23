@@ -29,6 +29,8 @@
 // #include <ImageIO.h>
 #include <ImagesCPU.h>
 #include <ImagesNPP.h>
+#include <opencv2/highgui.hpp>
+
 
 class NvCUStream;
 class BayerToH264ConverterNvidiaCodec{

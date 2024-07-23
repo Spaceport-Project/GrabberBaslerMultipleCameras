@@ -11,6 +11,9 @@
 #include <mutex>
 
 // #include <NvEncodeAPI.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include<opencv2/highgui/highgui.hpp>
+
 
 
 #include <cuda.h>
@@ -150,20 +153,15 @@ private:
     void  BayerToH264ConverterNvidiaCodec::EncodeCuda(uint8_t* &pHostFrame, int n_cam_index)
     {
   
-        // npp::ImageNPP_8u_C1 *oDeviceSrc = new npp::ImageNPP_8u_C1(width_, height_, true);
-        //  npp::ImageNPP_8u_C4 *oDeviceDest = new  npp::ImageNPP_8u_C4 (width_, height_, true);
-     
-        // // std::unique_ptr<npp::ImageNPP_8u_C1> oDeviceSrc;//(nWidth, nHeight, true);
-        // // std::unique_ptr<npp::ImageNPP_8u_C4 > oDeviceDest;//(nWidth, nHeight, true);
-        // // oDeviceSrc = std::make_unique< npp::ImageNPP_8u_C1>(width_, height_, true);
-        // // oDeviceDest = std::make_unique<  npp::ImageNPP_8u_C4> (width_, height_, true);
+      
         ck(cuCtxSetCurrent((CUcontext)pEncsCuda_[n_cam_index]->GetDevice()));
         // oDeviceSrc->copyFrom(pHostFrame, oDeviceSrc->pitch());
         // NppStatus stat = nppiCFAToRGBA_8u_C1AC4R(oDeviceSrc->data(), (int)oDeviceSrc->width(), {(int)oDeviceSrc->width(), (int)oDeviceSrc->height()}, 
         //                      {0, 0, (int)oDeviceSrc->width(),(int)oDeviceSrc->height() }, (Npp8u *)oDeviceDest->data(), (int)oDeviceDest->width()*4, NPPI_BAYER_RGGB, NPPI_INTER_UNDEFINED, 100);
         
         
-        clock_t start = clock();
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+
         //  bayer_device_srcs_[n_cam_index]->copyFromAsync(pHostFrame, bayer_device_srcs_[n_cam_index]->pitch(), npp_stream_contextes_[n_cam_index].hStream);
         bayer_device_srcs_[n_cam_index]->copyFrom(pHostFrame, bayer_device_srcs_[n_cam_index]->pitch());
         
@@ -174,15 +172,15 @@ private:
         NppStatus stat = nppiCFAToRGBA_8u_C1AC4R(bayer_device_srcs_[n_cam_index]->data(), (int)bayer_device_srcs_[n_cam_index]->width(), {(int)bayer_device_srcs_[n_cam_index]->width(), (int)bayer_device_srcs_[n_cam_index]->height()}, 
                             {0, 0, (int)bayer_device_srcs_[n_cam_index]->width(),(int)bayer_device_srcs_[n_cam_index]->height() }, (Npp8u *)rgba_device_dsts_[n_cam_index]->data(), (int)rgba_device_dsts_[n_cam_index]->width()*4, NPPI_BAYER_RGGB, NPPI_INTER_UNDEFINED, 100);
         
-        // clock_t end = clock();
-        // double elapsed = (double(end-start))/ CLOCKS_PER_SEC;
-        // printf("time taken by memcpy in seconds : %f, %f and %d. Cam\n", elapsed,double(end)/CLOCKS_PER_SEC, n_cam_index);
-        // return;
+        // cv::Mat bayer8BitMat(height_, width_, CV_8UC1, pHostFrame);
+        // cv::Mat rgba8BitMat(height_, width_, CV_8UC4);
+        // cv::cvtColor(bayer8BitMat, rgba8BitMat, cv::COLOR_BayerRG2RGBA);
+        
+        
         // cudaError_t cudaResult = cudaStreamSynchronize(npp_stream_contextes_[n_cam_index].hStream);
             // ENSURE(cudaSuccess == cudaResult);
 
        // cudaDeviceSynchronize();
-        //  return;
         // For receiving encoded packets
         std::vector<std::vector<uint8_t>> vPacket;
 
@@ -191,6 +189,7 @@ private:
             const NvEncInputFrame* encoderInputFrame = pEncsCuda_[n_cam_index]->GetNextInputFrame();
             
             clock_t start = clock();
+                // NvEncoderCuda::CopyToDeviceFrame((CUcontext)pEncsCuda_[n_cam_index]->GetDevice(), rgba8BitMat.data, 0, (CUdeviceptr)encoderInputFrame->inputPtr,
             NvEncoderCuda::CopyToDeviceFrame((CUcontext)pEncsCuda_[n_cam_index]->GetDevice(), rgba_device_dsts_[n_cam_index]->data(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
                 (int)encoderInputFrame->pitch,
                 pEncsCuda_[n_cam_index]->GetEncodeWidth(),
@@ -205,9 +204,10 @@ private:
 
             
             pEncsCuda_[n_cam_index]->EncodeFrame(vPacket);
-             clock_t end = clock();
-             double elapsed = (double(end-start))/ CLOCKS_PER_SEC;
-            // printf("time taken by h264 in seconds : %f, %f and %d. Cam\n", elapsed,double(end)/CLOCKS_PER_SEC, n_cam_index);
+            //  clock_t end = clock();
+            // std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            // std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << n_cam_index <<". Cam"<<std::endl;
+
 
         }
         else

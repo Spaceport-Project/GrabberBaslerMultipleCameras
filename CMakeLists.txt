@@ -36,11 +36,11 @@ set(ENCODEPERF_SOURCE
 ${CMAKE_SOURCE_DIR}/AppEncPerf.cpp
 )
 
-# set(NV_ENC_SOURCES
-#  ${CMAKE_SOURCE_DIR}/src/NvEncoder.cpp
-#  ${CMAKE_SOURCE_DIR}/src/NvEncoderCuda.cpp
-#  ${CMAKE_SOURCE_DIR}/src/NvEncoderOutputInVidMemCuda.cpp
-# )
+set(NV_ENC_SOURCES
+ ${CMAKE_SOURCE_DIR}/src/NvEncoder.cpp
+ ${CMAKE_SOURCE_DIR}/src/NvEncoderCuda.cpp
+ ${CMAKE_SOURCE_DIR}/src/NvEncoderOutputInVidMemCuda.cpp
+)
 
 set(NV_ENC_CUDA_UTILS
 ${CMAKE_SOURCE_DIR}/src/crc.cu
@@ -50,8 +50,8 @@ ${CMAKE_SOURCE_DIR}/src/crc.cu
 set(PROJECT_SOURCES
         mainGrabMultiCams.cpp
         src/BaslerMultipleCameras.cpp 
-        # src/Bayer2H264ConverterNvidiaCodec.cpp
-        src/Bayer2H264ConverterGST.cpp
+        src/Bayer2H264ConverterNvidiaCodec.cpp
+        # src/Bayer2H264ConverterGST.cpp
         src/memcpy_func.cpp  
 )
 
@@ -68,7 +68,7 @@ list(APPEND CUDA_NVCC_FLAGS "-std=c++17")
 find_package(pylon 7.4.0 REQUIRED)
 
 # Boost 
-# find_package(OpenCV  REQUIRED)
+find_package(OpenCV  REQUIRED)
 find_package(Boost REQUIRED)
 find_package(CUDA REQUIRED)
 
@@ -226,10 +226,10 @@ link_directories(${GSTLIBS_LIBRARY_DIRS})
 # install( TARGETS AppEncPerf )
 
 set(nppi_incls
-# ${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImageIO.h
-# ${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImagesCPU.h
-# ${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImagesNPP.h
-# ${CMAKE_SOURCE_DIR}/include/Logger.h
+${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImageIO.h
+${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImagesCPU.h
+${CMAKE_CURRENT_SOURCE_DIR}/include/Common/UtilNPP/ImagesNPP.h
+${CMAKE_SOURCE_DIR}/include/Logger.h
 
 )
 
@@ -249,36 +249,36 @@ set(nppi_incls
 
 
 
-# set(GrabBaslerMultiCams mainGrabBaslerMultiCams${CMAKE_BUILD_TYPE})
-# cuda_add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV_ENC_CUDA_UTILS} )
-# set_target_properties(${GrabBaslerMultiCams}  PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-
-# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-#     target_compile_definitions(${GrabBaslerMultiCams}  PUBLIC DEBUG)
-# endif()
-# target_include_directories(${GrabBaslerMultiCams}  PUBLIC  ${OpenCV_INCLUDE_DIRS}  ${CUDA_INCLUDE_DIRS}  ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
-# target_link_libraries(${GrabBaslerMultiCams}      
-
-#     ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY}  ${OpenCV_LIBS} ${GSTLIBS_LIBRARIES} pylon::pylon freeimage tbb tiff
-#    )
-
-# install( TARGETS ${GrabBaslerMultiCams} )
-
-
 set(GrabBaslerMultiCams mainGrabBaslerMultiCams${CMAKE_BUILD_TYPE})
-add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV_ENC_CUDA_UTILS} )
-# set_target_properties(${GrabBaslerMultiCams}  PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+cuda_add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV_ENC_CUDA_UTILS} )
+set_target_properties(${GrabBaslerMultiCams}  PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${GrabBaslerMultiCams}  PUBLIC DEBUG)
 endif()
-target_include_directories(${GrabBaslerMultiCams}  PUBLIC   ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
+target_include_directories(${GrabBaslerMultiCams}  PUBLIC  ${OpenCV_INCLUDE_DIRS}  ${CUDA_INCLUDE_DIRS}  ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
 target_link_libraries(${GrabBaslerMultiCams}      
 
-     ${CMAKE_DL_LIBS} ${GSTLIBS_LIBRARIES} pylon::pylon freeimage tbb tiff
+    ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY}  ${OpenCV_LIBS} pylon::pylon freeimage tbb tiff
    )
 
 install( TARGETS ${GrabBaslerMultiCams} )
+
+
+# set(GrabBaslerMultiCams mainGrabBaslerMultiCams${CMAKE_BUILD_TYPE})
+# add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV_ENC_CUDA_UTILS} )
+# # set_target_properties(${GrabBaslerMultiCams}  PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+# if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+#     target_compile_definitions(${GrabBaslerMultiCams}  PUBLIC DEBUG)
+# endif()
+# target_include_directories(${GrabBaslerMultiCams}  PUBLIC   ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
+# target_link_libraries(${GrabBaslerMultiCams}      
+
+#      ${CMAKE_DL_LIBS} ${GSTLIBS_LIBRARIES} pylon::pylon freeimage tbb tiff
+#    )
+
+# install( TARGETS ${GrabBaslerMultiCams} )
 
 
 add_executable(open_close_cameras  open_close_cameras.cpp )
