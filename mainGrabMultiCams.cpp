@@ -19,7 +19,7 @@ void ctrlC (int)
   
   printf ("\nCtrl-C detected, exit condition set to true.\n");
   // BaslerMultipleCameras::m_bExit.store(true, std::memory_order_release);
-  // BaslerMultipleCameras::m_bExit = true;
+  BaslerMultipleCameras::m_bExit = true;
    BayerToH264ConverterGST::m_bExit =true;
 
   // BaslerMultipleCameras::m_waitObject.Signal();

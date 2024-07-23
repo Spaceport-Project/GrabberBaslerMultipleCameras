@@ -1,21 +1,21 @@
 #include "Bayer2H264ConverterGST.h"
 
-thread_local unsigned count = 0;
-thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
-#define FPS_CALC(_WHAT_, ncurrCameraIndex) \
-do \
-{ \
-    double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
-    ++count; \
-    if (now - last >= 1.0) \
-    { \
-      std::cerr << "\033[1;31m";\
-      std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
-      std::cerr << "\033[0m";\
-      count = 0; \
-      last = now; \
-    } \
-} while(false)
+// thread_local unsigned count = 0;
+// thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+// #define FPS_CALC(_WHAT_, ncurrCameraIndex) \
+// do \
+// { \
+//     double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
+//     ++count; \
+//     if (now - last >= 1.0) \
+//     { \
+//       std::cerr << "\033[1;31m";\
+//       std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
+//       std::cerr << "\033[0m";\
+//       count = 0; \
+//       last = now; \
+//     } \
+// } while(false)
 
 
 // struct DATA;
@@ -32,11 +32,14 @@ BayerToH264ConverterGST::BayerToH264ConverterGST(std::map<int, std::string> mapS
         num_devices_ = mapSerialNums_.size();
         pipelines_.resize(num_devices_, nullptr);
         sources_.resize(num_devices_, nullptr);
-        capsfilters_.resize(num_devices_, nullptr);
+        capsfilters1_.resize(num_devices_, nullptr);
         capsfilters2_.resize(num_devices_, nullptr);
+        capsfilters3_.resize(num_devices_, nullptr);
+
         bayer_to_rgb_.resize(num_devices_, nullptr);
-        caps_.resize(num_devices_, nullptr);
+        caps1_.resize(num_devices_, nullptr);
         caps2_.resize(num_devices_, nullptr);
+        caps3_.resize(num_devices_, nullptr);
 
         vidconvs_.resize(num_devices_, nullptr);
         nvvidconvs_.resize(num_devices_, nullptr);
@@ -89,76 +92,76 @@ bool BayerToH264ConverterGST::CloseAllGstPipelines() {
     //     }
     // }
 
-  void BayerToH264ConverterGST::on_need_callback(GstElement *appsrc, guint unused_size,  DATA *data_struct) {
+//   void BayerToH264ConverterGST::on_need_callback(GstElement *appsrc, guint unused_size,  DATA *data_struct) {
 
 
-    if (BayerToH264ConverterGST::m_bExit == true)
-        gst_element_send_event(data_struct->pipeline, gst_event_new_eos());
+//     if (BayerToH264ConverterGST::m_bExit == true)
+//         gst_element_send_event(data_struct->pipeline, gst_event_new_eos());
 
-    static  guint64 timestamp = 0;
-    const int DefaultTimeout_ms = 5000;
+//     static  guint64 timestamp = 0;
+//     const int DefaultTimeout_ms = 5000;
     
-    CBaslerUniversalGrabResultPtr ptrGrabResult;
-    data_struct->cam->RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
-    intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
-    if (ptrGrabResult->GrabSucceeded())
-    {
+//     CBaslerUniversalGrabResultPtr ptrGrabResult;
+//     data_struct->cam->RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
+//     intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
+//     if (ptrGrabResult->GrabSucceeded())
+//     {
         
-        // if (i %10 == 0 /*&& (nCurCameraIndex ==2 || nCurCameraIndex ==1) */) 
-        //     std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
+//         // if (i %10 == 0 /*&& (nCurCameraIndex ==2 || nCurCameraIndex ==1) */) 
+//         //     std::cout<<nCurCameraIndex<<". Cam, Timestamp:"<<std::fixed<< std::setprecision(6)<<double(ptrGrabResult->GetTimeStamp())/1.e9<<" s"<<std::endl;
         
-        uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
-        size_t bufferSize = ptrGrabResult->GetBufferSize();
-        u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
-        const std::string serialNumber{ data_struct->cam->GetDeviceInfo().GetSerialNumber().c_str()};
+//         uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
+//         size_t bufferSize = ptrGrabResult->GetBufferSize();
+//         u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
+//         const std::string serialNumber{ data_struct->cam->GetDeviceInfo().GetSerialNumber().c_str()};
     
 
-        GstBuffer *buffer = nullptr;
-        GstFlowReturn ret;
-        GstMapInfo map;
-        // DATA *data_struct = static_cast<DATA*>(user_data);
-        size_t size_ = bufferSize ; //data_struct->imageSize;
-        // std::cout<<"camera size:"<<bufferSize<<std::endl;
-        // guint8* camera_buffer = data_struct->image;
+//         GstBuffer *buffer = nullptr;
+//         GstFlowReturn ret;
+//         GstMapInfo map;
+//         // DATA *data_struct = static_cast<DATA*>(user_data);
+//         size_t size_ = bufferSize ; //data_struct->imageSize;
+//         // std::cout<<"camera size:"<<bufferSize<<std::endl;
+//         // guint8* camera_buffer = data_struct->image;
 
-        // Allocate a new buffer
-        buffer = gst_buffer_new_allocate(NULL, size_, NULL);
+//         // Allocate a new buffer
+//         buffer = gst_buffer_new_allocate(NULL, size_, NULL);
     
-        // Map the buffer and fill it with data from your camera SDK
-        gst_buffer_map(buffer, &map, GST_MAP_WRITE);
-        // Here you should copy your camera SDK buffer into map.data
-        memcpy(map.data, pImageBuffer, size_);
-        // memset(map.data, 0xff, size); // Dummy data for example
-        gst_buffer_unmap(buffer, &map);
+//         // Map the buffer and fill it with data from your camera SDK
+//         gst_buffer_map(buffer, &map, GST_MAP_WRITE);
+//         // Here you should copy your camera SDK buffer into map.data
+//         memcpy(map.data, pImageBuffer, size_);
+//         // memset(map.data, 0xff, size); // Dummy data for example
+//         gst_buffer_unmap(buffer, &map);
         
-        // buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY, camera_buffer, size_, 0, size_, nullptr, nullptr);
+//         // buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY, camera_buffer, size_, 0, size_, nullptr, nullptr);
 
-        GST_BUFFER_PTS(buffer) = timestamp;
-        GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, 30); // Adjust the framerate
-        timestamp += GST_BUFFER_DURATION(buffer);
+//         GST_BUFFER_PTS(buffer) = timestamp;
+//         GST_BUFFER_DURATION(buffer) = gst_util_uint64_scale_int(1, GST_SECOND, 30); // Adjust the framerate
+//         timestamp += GST_BUFFER_DURATION(buffer);
 
-        g_signal_emit_by_name(appsrc, "push-buffer", buffer, &ret);
-        gst_buffer_unref(buffer);
+//         g_signal_emit_by_name(appsrc, "push-buffer", buffer, &ret);
+//         gst_buffer_unref(buffer);
 
-        if (ret != GST_FLOW_OK) {
-            std::cerr << "Error pushing buffer to appsrc" << std::endl;
-        }
-    } else
-    {
-        std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
-    }
-    FPS_CALC("Grabbing Buffer FPS",  data_struct->cam_index);
-     ptrGrabResult.Release();
+//         if (ret != GST_FLOW_OK) {
+//             std::cerr << "Error pushing buffer to appsrc" << std::endl;
+//         }
+//     } else
+//     {
+//         std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
+//     }
+//     FPS_CALC("Grabbing Buffer FPS",  data_struct->cam_index);
+//      ptrGrabResult.Release();
 
 
-}
+// }
 
 bool BayerToH264ConverterGST::CloseSingleGstPipeline(unsigned int n_cam_index) {
 
-    
-    // gst_element_send_event(pipelines_[n_cam_index], gst_event_new_eos());
+    gst_element_send_event(pipelines_[n_cam_index], gst_event_new_eos());
+
     g_main_loop_run(main_loops_[n_cam_index]);
-    
+
     g_main_loop_unref(main_loops_[n_cam_index]);
 
     gst_object_unref(buses_[n_cam_index]);
@@ -166,6 +169,7 @@ bool BayerToH264ConverterGST::CloseSingleGstPipeline(unsigned int n_cam_index) {
     gst_element_set_state(pipelines_[n_cam_index], GST_STATE_NULL);
     // Clean up
     gst_object_unref(pipelines_[n_cam_index]);
+
     // g_main_loop_quit(main_loop);
     return true;
 
@@ -176,36 +180,58 @@ BayerToH264ConverterGST::~BayerToH264ConverterGST()
 //    close();
 }
 
-void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_index, DATA *data_struct){
+void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_index/* DATA *data_struct */){
 
     pipelines_[n_cam_index] = gst_pipeline_new("bayer-to-h264");
     sources_[n_cam_index] = gst_element_factory_make("appsrc", "source");
-    capsfilters_[n_cam_index] = gst_element_factory_make("capsfilter", "capsfilter");
+    capsfilters1_[n_cam_index] = gst_element_factory_make("capsfilter", "capsfilter1");
     // caps_[n_cam_index] = gst_caps_from_string("video/x-bayer,width=4096,height=3000,framerate=30/1,format=rggb");
-    caps_[n_cam_index] = gst_caps_new_simple("video/x-bayer",
+    caps1_[n_cam_index] = gst_caps_new_simple("video/x-bayer",
                             "format", G_TYPE_STRING, "rggb",
                             "width", G_TYPE_INT, 4096,
                             "height", G_TYPE_INT, 3000,
                             "framerate", GST_TYPE_FRACTION, 30, 1,
                             NULL);
-    g_object_set(capsfilters_[n_cam_index], "caps", caps_[n_cam_index], NULL);
-    gst_caps_unref(caps_[n_cam_index]);
+    // g_object_set(capsfilters1_[n_cam_index], "caps", caps1_[n_cam_index], NULL);
+    // gst_caps_unref(caps1_[n_cam_index]);
     bayer_to_rgb_[n_cam_index] = gst_element_factory_make("bayer2rgb", "bayer2rgb");
+
     // bayer_to_rgb_[n_cam_index] =  gst_element_factory_make("tcamconvert", "tcamconvert");
     // vidconvs_[n_cam_index] = gst_element_factory_make("videoconvert", "videoconvert");
+   
+    vidconvs_[n_cam_index] = gst_element_factory_make("videoconvert", "videoconvert");
 
     nvvidconvs_[n_cam_index] = gst_element_factory_make("nvvideoconvert", "nvvideoconvert");
+
+    
+   
+
+    
     encoders_[n_cam_index] = gst_element_factory_make("nvv4l2h264enc", "encoder");
     g_object_set(G_OBJECT( encoders_[n_cam_index]), "bitrate", 15000000, NULL);
+
+    // capsfilters2_[n_cam_index] = gst_element_factory_make("capsfilter", "capsfilter2");
+
+    caps2_[n_cam_index] =gst_caps_new_simple("video/x-raw",
+                                    "format", G_TYPE_STRING, "NV12",
+                                    //  "width",G_TYPE_INT, 4096,
+                                    //   "height", G_TYPE_INT, 3000,
+                                    // "framerate", GST_TYPE_FRACTION, 30, 1,
+                                    "memory", G_TYPE_STRING, "NVMM",
+                                    NULL);
+   
+    // gst_caps_from_string("video/x-raw(memory:NVMM), format=I420");
+    // g_object_set(G_OBJECT(capsfilters2_[n_cam_index]), "caps", caps2_[n_cam_index], NULL);
+    // gst_caps_unref(caps2_[n_cam_index]); 
     // g_object_set(G_OBJECT( encoders_[n_cam_index]),"stream-format", "byte-stream", NULL);
 
-    capsfilters2_[n_cam_index] = gst_element_factory_make("capsfilter", "capsfilter2");
 
-    caps_[n_cam_index] = gst_caps_new_simple("video/x-h264",
+    capsfilters3_[n_cam_index] = gst_element_factory_make("capsfilter", "capsfilter3");
+    caps3_[n_cam_index] = gst_caps_new_simple("video/x-h264",
                                 "streamformat", G_TYPE_STRING, "byte-stream",
                                 NULL);
-    g_object_set(capsfilters2_[n_cam_index], "caps", caps_[n_cam_index], NULL);                            
-    gst_caps_unref(caps_[n_cam_index]); 
+     g_object_set(capsfilters3_[n_cam_index], "caps", caps3_[n_cam_index], NULL);                            
+     gst_caps_unref(caps3_[n_cam_index]); 
 
     h264parse_[n_cam_index] = gst_element_factory_make("h264parse", "h264parse");
     muxers_[n_cam_index] = gst_element_factory_make("qtmux", "muxer");
@@ -215,23 +241,51 @@ void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_ind
 
     // gst_element_link_pads (sources_[n_cam_index], "src", sinks_[n_cam_index], "sink");
 
+
+    // GstCaps *nvmm_caps = gst_caps_new_simple("video/x-raw(memory:NVMM)",
+    //                                         "format", G_TYPE_STRING, "I420",
+    //                                         "width", G_TYPE_INT, 4096,
+    //                                         "height", G_TYPE_INT, 3000,
+    //                                         "framerate", GST_TYPE_FRACTION, 30, 1,
+    //                                         NULL);
    
-     // Add elements to the pipeline
-    gst_bin_add_many(GST_BIN(pipelines_[n_cam_index]), sources_[n_cam_index], capsfilters_[n_cam_index], bayer_to_rgb_ [n_cam_index], nvvidconvs_[n_cam_index], encoders_[n_cam_index], capsfilters2_[n_cam_index],  h264parse_[n_cam_index], muxers_[n_cam_index], sinks_[n_cam_index], NULL);
+    gst_bin_add_many(GST_BIN(pipelines_[n_cam_index]), sources_[n_cam_index], bayer_to_rgb_ [n_cam_index], vidconvs_[n_cam_index], nvvidconvs_[n_cam_index],  encoders_[n_cam_index], h264parse_[n_cam_index], muxers_[n_cam_index], sinks_[n_cam_index], NULL);
+     
+    
+    
+    
+     if (!gst_element_link_filtered(sources_[n_cam_index], bayer_to_rgb_ [n_cam_index], caps1_[n_cam_index] )) {
+        std::cerr << "Elements could not be linked (appsrc to bayer2rgb)." << std::endl;
+        gst_object_unref(pipelines_[n_cam_index]);
+        return;
+    }
+    gst_caps_unref(caps1_[n_cam_index]);
+    gst_element_link_many(bayer_to_rgb_ [n_cam_index], vidconvs_[n_cam_index], NULL);
+    // gst_element_link_filtered(bayer2rgb, nvvideoconvert, nvmm_caps)
+    // gst_element_link_filtered(videoconvert, nvvideoconvert, nvmm_caps), "videoconvert -> nvvideoconvert with caps");
+    if (!gst_element_link_filtered( vidconvs_[n_cam_index],  nvvidconvs_[n_cam_index], caps2_[n_cam_index])) {
+        std::cerr << "Elements could not be linked (bayer2rgb to videoconvert)." << std::endl;
+        gst_object_unref(pipelines_[n_cam_index]);
+        return ;
+    }
+    
+    gst_caps_unref(caps2_[n_cam_index]);
+    // gst_element_link_many(nvvideoconvert, nvv4l2h264enc, h264parse, filesink, NULL), "nvvideoconvert -> nvv4l2h264enc -> h264parse -> filesink");
+   gst_element_link_many(nvvidconvs_[n_cam_index],  encoders_[n_cam_index], h264parse_[n_cam_index], muxers_[n_cam_index], sinks_[n_cam_index], NULL);
 
 
     // gst_element_link_filtered( sources_[n_cam_index], bayer_to_rgb_[n_cam_index], caps_[n_cam_index]);
 
-    // Link the elements
-    gst_element_link_many(sources_[n_cam_index], capsfilters_[n_cam_index], bayer_to_rgb_[n_cam_index],  nvvidconvs_[n_cam_index], encoders_[n_cam_index], capsfilters2_[n_cam_index], h264parse_[n_cam_index], muxers_[n_cam_index], sinks_[n_cam_index], NULL);
+    // // Link the elements
+    // gst_element_link_many(sources_[n_cam_index], capsfilters1_[n_cam_index], bayer_to_rgb_[n_cam_index],  nvvidconvs_[n_cam_index], capsfilters2_[n_cam_index], encoders_[n_cam_index], capsfilters2_[n_cam_index],  h264parse_[n_cam_index], muxers_[n_cam_index], sinks_[n_cam_index], NULL);
 
 
     // Configure appsrc
     // g_object_set(G_OBJECT(sources_[n_cam_index]), "caps", caps_[n_cam_index], "format", GST_FORMAT_TIME, NULL);
-    data_struct->appsrc = sources_[n_cam_index];
-    data_struct->pipeline = pipelines_[n_cam_index];
-    data_struct->cam_index = n_cam_index;
-    g_signal_connect(sources_[n_cam_index], "need-data", G_CALLBACK(&BayerToH264ConverterGST::on_need_callback), data_struct);
+    // data_struct->appsrc = sources_[n_cam_index];
+    // data_struct->pipeline = pipelines_[n_cam_index];
+    // data_struct->cam_index = n_cam_index;
+    // g_signal_connect(sources_[n_cam_index], "need-data", G_CALLBACK(&BayerToH264ConverterGST::on_need_callback), data_struct);
 
             // Start the pipeline
     int ret = gst_element_set_state(pipelines_[n_cam_index], GST_STATE_PLAYING);
@@ -242,7 +296,7 @@ void BayerToH264ConverterGST::InitializeSingleGstPipeline(unsigned int n_cam_ind
     }
 
 
-    main_loops_[n_cam_index] = g_main_loop_new(NULL, FALSE);
+    main_loops_[n_cam_index] = g_main_loop_new(NULL, TRUE);
     buses_[n_cam_index] = gst_element_get_bus(pipelines_[n_cam_index]);
     // gst_bus_add_watch(buses_[n_cam_index], BayerToH264ConverterGST::bus_call,  main_loops_[n_cam_index]);
 
@@ -300,7 +354,7 @@ void BayerToH264ConverterGST::InitializeAllGstPipelines(){
         // Create elements
         pipelines_[i] = gst_pipeline_new("bayer-to-h264");
         sources_[i] = gst_element_factory_make("appsrc", "source");
-        caps_[i] = gst_caps_from_string("video/x-bayer,width=4096,height=3000,framerate=30/1,format=rggb");
+        caps1_[i] = gst_caps_from_string("video/x-bayer,width=4096,height=3000,framerate=30/1,format=rggb");
         bayer_to_rgb_[i] = gst_element_factory_make("bayer2rgb", "bayer2rgb");
         nvvidconvs_[i] = gst_element_factory_make("nvvideoconvert", "nvvideoconvert");
         encoders_[i] = gst_element_factory_make("nvv4l2h264enc", "encoder");
@@ -313,15 +367,15 @@ void BayerToH264ConverterGST::InitializeAllGstPipelines(){
         // Add elements to the pipeline
         gst_bin_add_many(GST_BIN(pipelines_[i]), sources_[i], bayer_to_rgb_ [i], nvvidconvs_[i], encoders_[i], h264parse_[i],  sinks_[i], NULL);
 
-        gst_element_link_filtered( sources_[i], bayer_to_rgb_[i], caps_[i]);
-        gst_caps_unref(caps_[i]);
+        gst_element_link_filtered( sources_[i], bayer_to_rgb_[i], caps1_[i]);
+        gst_caps_unref(caps1_[i]);
 
         // Link the elements
         gst_element_link_many(bayer_to_rgb_[i], nvvidconvs_[i], encoders_[i], h264parse_[i], sinks_[i], NULL);
 
 
         // Configure appsrc
-        g_object_set(G_OBJECT(sources_[i]), "caps", caps_[i], "format", GST_FORMAT_TIME, NULL);
+        g_object_set(G_OBJECT(sources_[i]), "caps", caps1_[i], "format", GST_FORMAT_TIME, NULL);
                 // Start the pipeline
         int ret = gst_element_set_state(pipelines_[i], GST_STATE_PLAYING);
         if (ret == GST_STATE_CHANGE_FAILURE) {
@@ -342,10 +396,15 @@ void BayerToH264ConverterGST::InitializeAllGstPipelines(){
 }
 
  gboolean BayerToH264ConverterGST::push_data2( guint8 *camera_buffer, unsigned int n_cam_index) {
+
     static thread_local guint64 timestamp = 0;
     GstBuffer *buffer;
     GstFlowReturn ret;
     // guint size = 12288000; // Adjust the size according to your buffer size
+    // if (BayerToH264ConverterGST::m_bExit == true){
+    //     g_signal_emit_by_name(sources_[n_cam_index], "end-of-stream", &ret);
+    //     return true;
+    // }
 
       // buffer = gst_buffer_new_wrapped((gpointer)data->image.get(), CAMERA_BUFFER_SIZE);
     // buffer = gst_buffer_new_wrapped_full(GST_MEMORY_FLAG_READONLY, camera_buffer, size_, 0, size_, camera_buffer, (GDestroyNotify)free);

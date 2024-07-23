@@ -39,10 +39,7 @@
 #include "BS_thread_pool.hpp" // BS::thread_pool
 #include "ThreadPool.h"
 
-// #include <ImagesCPU.h>
-// #include <ImagesNPP.h>
 
-#include "NvEncoderCuda.h"
 
 // #include "memcopy_func.h"
 

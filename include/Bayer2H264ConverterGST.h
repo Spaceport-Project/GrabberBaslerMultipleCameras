@@ -31,10 +31,10 @@ struct DATA{
     u_int64_t timeStamp=0;
     size_t imageSize=0;
     std::string serialNumber;
-    guint cam_index=0;
-    GstElement *appsrc = nullptr;
-    GstElement *pipeline = nullptr;
-    CBaslerUniversalInstantCamera *cam;
+    // guint cam_index=0;
+    // GstElement *appsrc = nullptr;
+    // GstElement *pipeline = nullptr;
+    // CBaslerUniversalInstantCamera *cam;
 };
 
 
@@ -43,7 +43,7 @@ public:
     BayerToH264ConverterGST(std::map<int, std::string> mapSerialNums, unsigned int input_width, unsigned int input_height);
     ~BayerToH264ConverterGST();
     void InitializeAllGstPipelines();
-    void InitializeSingleGstPipeline(unsigned int, DATA *data_struct);
+    void InitializeSingleGstPipeline(unsigned int /*DATA *data_struct*/);
     bool CloseSingleGstPipeline(unsigned int);
     bool StartSingleGstPipeline(unsigned int n_cam_index);
 
@@ -73,13 +73,13 @@ private:
     std::vector<DATA> data_struct;
     unsigned int frameDurationInMS;
 
-    std::vector<GstElement*> pipelines_, sources_, capsfilters_, bayer_to_rgb_, vidconvs_,nvvidconvs_, encoders_, capsfilters2_, h264parse_, muxers_, sinks_;
+    std::vector<GstElement*> pipelines_, sources_, capsfilters1_, capsfilters2_, capsfilters3_, bayer_to_rgb_, vidconvs_,nvvidconvs_, encoders_, h264parse_, muxers_, sinks_;
     std::vector<GstBus*> buses_;
     std::vector<GstMessage *> msgs_;
     std::vector<GstStateChangeReturn> rets_;
     std::vector<GMainLoop *> main_loops_;
     // GstCaps * caps_;
-    std::vector< GstCaps *> caps_, caps2_;
+    std::vector< GstCaps *> caps1_, caps2_, caps3_;
 
     
 };
