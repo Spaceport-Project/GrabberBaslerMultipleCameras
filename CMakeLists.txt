@@ -42,16 +42,13 @@ ${CMAKE_SOURCE_DIR}/AppEncPerf.cpp
 #  ${CMAKE_SOURCE_DIR}/src/NvEncoderOutputInVidMemCuda.cpp
 # )
 
-set(NV_ENC_CUDA_UTILS
-${CMAKE_SOURCE_DIR}/src/crc.cu
-)
 
 
 set(PROJECT_SOURCES
         mainGrabMultiCams.cpp
         src/BaslerMultipleCameras.cpp 
         # src/Bayer2H264ConverterNvidiaCodec.cpp
-        src/Bayer2H264ConverterGST.cpp
+        # src/Bayer2H264ConverterGST.cpp
         src/memcpy_func.cpp  
 )
 
@@ -68,7 +65,7 @@ list(APPEND CUDA_NVCC_FLAGS "-std=c++17")
 find_package(pylon 7.4.0 REQUIRED)
 
 # Boost 
-# find_package(OpenCV  REQUIRED)
+find_package(OpenCV  REQUIRED)
 find_package(Boost REQUIRED)
 find_package(CUDA REQUIRED)
 
@@ -272,10 +269,10 @@ add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${GrabBaslerMultiCams}  PUBLIC DEBUG)
 endif()
-target_include_directories(${GrabBaslerMultiCams}  PUBLIC   ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
+target_include_directories(${GrabBaslerMultiCams}  PUBLIC  ${OpenCV_INCLUDE_DIRS}   ${PROJECT_INCLUDE_DIRECTORIES}  )
 target_link_libraries(${GrabBaslerMultiCams}      
 
-     ${CMAKE_DL_LIBS} ${GSTLIBS_LIBRARIES} pylon::pylon freeimage tbb tiff
+      avformat avcodec swscale avutil avdevice ${CMAKE_DL_LIBS} ${OpenCV_LIBS}  pylon::pylon freeimage tbb tiff
    )
 
 install( TARGETS ${GrabBaslerMultiCams} )

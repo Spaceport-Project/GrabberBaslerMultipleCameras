@@ -11,6 +11,8 @@
 #include <mutex>
 
 // #include <NvEncodeAPI.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include<opencv2/highgui/highgui.hpp>
 
 
 extern "C" {
@@ -68,7 +70,6 @@ public:
     }
   
     bool close() {
-        outputFile.close();
         for (unsigned int i = 0 ; i < num_devices_; i++)
             av_write_trailer(format_contexts[i]);
 
@@ -104,16 +105,16 @@ public:
        close();
     }
 
-    bool initializeContexts(const char* suffix_file_name, std::map<int, std::string> mapSerials) 
+    bool initializeContexts(const std::string & suffix_file_name, std::map<int, std::string> mapSerials) 
     {
         
         
         // const AVOutputFormat *poutputFormat = av_guess_format(NULL, ".mkv", "video/x-matroska");
         for (unsigned int i = 0; i < num_devices_;i++){
-            if (i == 0)
-                outputFile.open("image_stream_rgba.bin", std::ios::binary);
-            std::string file_name = std::string(suffix_file_name) + "_" + mapSerials[i]  + ".mp4" ;
-
+            // if (i == 0)
+            //     outputFile.open("image_stream_rgba.bin", std::ios::binary);
+            std::string file_name = std::string(suffix_file_name) + mapSerials[i]  + ".mp4" ;
+            std::cout<<file_name<<std::endl;
             int ret = avformat_alloc_output_context2(&format_contexts[i], nullptr, nullptr, file_name.c_str());
             if (ret < 0) 
             {
@@ -121,10 +122,10 @@ public:
                 return false;
             }
             format_contexts[i]->flags |= AVFMT_FLAG_GENPTS;
-            // format_contexts[i]->flags |= AVFMT_FLAG_FLUSH_PACKETS;
-            // format_contexts[i]->flags |= AVFMT_ALLOW_FLUSH ;
-            // format_contexts[i]->oformat = poutputFormat;
-            // format_contexts[i]->flags  |= AVFMT_FLAG_NOBUFFER;
+            format_contexts[i]->flags |= AVFMT_FLAG_FLUSH_PACKETS;
+            format_contexts[i]->flags |= AVFMT_ALLOW_FLUSH ;
+            // format_econtexts[i]->oformat = poutputFormat;
+            format_contexts[i]->flags  |= AVFMT_FLAG_NOBUFFER;
 
              
 
@@ -174,16 +175,16 @@ public:
             codec_contexts_.back()->thread_count = num_devices_;
             codec_contexts_.back()->thread_type = FF_THREAD_FRAME;
             //  codec_contexts_.back()->flags |= AV_CODEC_FLAG2_CHUNKS;
-    
+            codec_contexts_.back()->bit_rate = 5000000; // Adjust the bitrate as needed
+
             // av_opt_set(codec_contexts_.back()->priv_data, "preset", "fast", 0);
 
-            // codec_contexts_.back()->bit_rate = 400000; // Adjust the bitrate as needed
             if (avcodec_open2(codec_contexts_.back(), codec, nullptr) < 0) 
             {
                 fprintf(stderr, "Could not open codec\n");
                 return false;
             }
-             avcodec_parameters_from_context(video_streams_.back()->codecpar, codec_contexts_.back());
+            avcodec_parameters_from_context(video_streams_.back()->codecpar, codec_contexts_.back());
 
             sws_ctx_.push_back(nullptr);
 
@@ -192,7 +193,7 @@ public:
        
         for (unsigned int i = 0; i < num_devices_; i++)
         {
-            std::string file_name = std::string(suffix_file_name) + "_" + mapSerials[i]  + ".mp4" ;
+            std::string file_name = std::string(suffix_file_name)  + mapSerials[i]  + ".mp4" ;
 
             if (!(format_contexts[i]->oformat->flags & AVFMT_NOFILE)) 
             {
@@ -232,9 +233,9 @@ public:
     }
 
    
-    bool convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int64_t time_stamp) 
+    bool convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int time_stamp) 
     {
-        //  assert( n_curr_camera < num_devices_  && "# of Current Camera must not be less than device number");
+         assert( n_curr_cam_index < num_devices_  && "# of Current Camera must not be less than device number");
 
         //  uint8_t *data =  (uint8_t*)av_malloc(width_ * height_) ;
         //  memcpy(data, bayerData,  width_ * height_);
@@ -243,14 +244,14 @@ public:
         
         bool ret_flag = false; 
         
-        clock_t start = clock();
-        AVFrame *input_frame = av_frame_alloc();
-        if (!input_frame) 
-        {
-            fprintf(stderr, "Failed to allocate input frame\n");
-            results_[n_curr_cam_index] = ret_flag;
-            return ret_flag;
-        }
+        // clock_t start = clock();
+        // AVFrame *input_frame = av_frame_alloc();
+        // if (!input_frame) 
+        // {
+        //     fprintf(stderr, "Failed to allocate input frame\n");
+        //     results_[n_curr_cam_index] = ret_flag;
+        //     return ret_flag;
+        // }
         
    
 
@@ -259,7 +260,7 @@ public:
         if (!yuv_frame) 
         {
             fprintf(stderr, "Failed to allocate output frame\n");
-            av_frame_free(&input_frame);
+            // av_frame_free(&input_frame);
 
             results_[n_curr_cam_index] = ret_flag;
             return ret_flag;
@@ -268,9 +269,9 @@ public:
 
        
 
-        input_frame->width = width_;
-        input_frame->height = height_;
-        input_frame->format = AV_PIX_FMT_BAYER_RGGB8;
+        // input_frame->width = width_;
+        // input_frame->height = height_;
+        // input_frame->format = AV_PIX_FMT_BAYER_RGGB8;
 
       
 
@@ -278,75 +279,85 @@ public:
         yuv_frame->height = height_;
         yuv_frame->format = AV_PIX_FMT_RGB0;
 
-        int ret = av_frame_get_buffer(input_frame, 32);
-        if (ret < 0) 
-        {
-            fprintf(stderr, "Failed to allocate buffer for input frame\n");
-            av_frame_free(&input_frame);
-            av_frame_free(&yuv_frame);
-            results_[n_curr_cam_index] = ret_flag;
-            return ret_flag;
-        }
+        // int ret = av_frame_get_buffer(input_frame, 32);
+        // if (ret < 0) 
+        // {
+        //     fprintf(stderr, "Failed to allocate buffer for input frame\n");
+        //     av_frame_free(&input_frame);
+        //     av_frame_free(&yuv_frame);
+        //     results_[n_curr_cam_index] = ret_flag;
+        //     return ret_flag;
+        // }
 
-        ret = av_frame_get_buffer(yuv_frame, 32);
+        int ret = av_frame_get_buffer(yuv_frame, 32);
         if (ret < 0) 
         {
             fprintf(stderr, "Failed to allocate buffer for output frame\n");
-            av_frame_free(&input_frame);
+            // av_frame_free(&input_frame);
             av_frame_free(&yuv_frame);
 
             results_[n_curr_cam_index] = ret_flag;
             return ret_flag;
         }
 
-        ret = av_image_fill_arrays(
-            input_frame->data, input_frame->linesize,
-            bayerData, AV_PIX_FMT_BAYER_RGGB8,
-            width_, height_, 1
-        );
+        // ret = av_image_fill_arrays(
+        //     input_frame->data, input_frame->linesize,
+        //     bayerData, AV_PIX_FMT_BAYER_RGGB8,
+        //     width_, height_, 1
+        // );
 
 
         if (ret < 0) 
         {
             fprintf(stderr, "Failed to set input frame data\n");
-            av_frame_free(&input_frame);
+            // av_frame_free(&input_frame);
             av_frame_free(&yuv_frame);
 
             results_[n_curr_cam_index] = ret_flag;
             return ret_flag;
         }
         
-
-        sws_scale(sws_ctx_[n_curr_cam_index], input_frame->data, input_frame->linesize, 0,
-                  height_, yuv_frame->data, yuv_frame->linesize);
+    
 
 
+        // sws_scale(sws_ctx_[n_curr_cam_index], input_frame->data, input_frame->linesize, 0,
+        //           height_, yuv_frame->data, yuv_frame->linesize);
+        clock_t start = clock();
+        cv::Mat bayer8BitMat(height_, width_, CV_8UC1, bayerData);
+        cv::Mat rgb8BitMat(height_, width_, CV_8UC4);
+        cv::cvtColor(bayer8BitMat, rgb8BitMat, cv::COLOR_BayerRG2RGBA);
+
+        ret = av_image_fill_arrays(
+            yuv_frame->data, yuv_frame->linesize,
+            rgb8BitMat.data, AV_PIX_FMT_RGB0,
+            width_, height_, 1
+        );
          clock_t stop = clock();
 
     // Calculate the elapsed time in seconds
         double elapsed = ((double)(stop - start)) / CLOCKS_PER_SEC;
 
-        if (n_curr_cam_index == 0) printf("Time taken by function: %f seconds\n", elapsed);
-        if (n_curr_cam_index == 0) {
-            FILE *file = fopen("output.raw", "wb");
+        // if (n_curr_cam_index == 0) printf("Time taken by function: %f seconds\n", elapsed);
+        // if (n_curr_cam_index == 0) {
+        //     FILE *file = fopen("output.raw", "wb");
 
-            int num_bytes = av_image_get_buffer_size((AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
-            uint8_t *buffer = (u_int8_t *)av_malloc(num_bytes * sizeof(uint8_t));
-            av_image_copy_to_buffer(buffer, num_bytes, (const uint8_t * const *)yuv_frame->data, (const int *)yuv_frame->linesize, (AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
-            fwrite(buffer, 1, num_bytes, file);
+        //     int num_bytes = av_image_get_buffer_size((AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
+        //     uint8_t *buffer = (u_int8_t *)av_malloc(num_bytes * sizeof(uint8_t));
+        //     av_image_copy_to_buffer(buffer, num_bytes, (const uint8_t * const *)yuv_frame->data, (const int *)yuv_frame->linesize, (AVPixelFormat)yuv_frame->format, yuv_frame->width, yuv_frame->height, 1);
+        //     fwrite(buffer, 1, num_bytes, file);
 
-            fclose(file);
-            av_free(buffer);
+        //     fclose(file);
+        //     av_free(buffer);
 
-        }
+        // }
             // outputFile.write((const char*)yuv_frame->data, width_*height_*4);
-        return true;
+        // return true;
 
         ret = avcodec_send_frame(codec_contexts_[n_curr_cam_index], yuv_frame);
         if (ret < 0) 
         {
             fprintf(stderr, "Error sending a frame for encoding\n");
-            av_frame_free(&input_frame);
+            // av_frame_free(&input_frame);
             av_frame_free(&yuv_frame);
 
             results_[n_curr_cam_index] = ret_flag;
@@ -385,7 +396,7 @@ public:
             
         
 
-        av_frame_free(&input_frame);
+        // av_frame_free(&input_frame);
         av_frame_free(&yuv_frame);
         //  av_free(data);
         return ret_flag;
@@ -419,7 +430,7 @@ public:
     // }
 
     bool writeSingleFrame2MP4(int nCurrCameraIndex) {
-        // printf("pkts_[nCurrCamera]->stream_index: %d, %d \n", pkts_[nCurrCamera]->stream_index, video_streams_[nCurrCamera]->index);
+        // printf("pkts_[nCurrCamera]->stream_index: %d, %d, %d \n", nCurrCameraIndex, pkts_[nCurrCameraIndex]->stream_index, video_streams_[nCurrCameraIndex]->index);
 
         int ret =  av_interleaved_write_frame(format_contexts[nCurrCameraIndex], pkts_[nCurrCameraIndex]);
         if (frame_cnts[nCurrCameraIndex] % flush_interval == 0) {
@@ -429,7 +440,7 @@ public:
             //  ret = av_write_flush(format_contexts[nCurrCameraIndex]);
              av_interleaved_write_frame(format_contexts[nCurrCameraIndex], NULL);
         }
-        // av_interleaved_write_frame(format_contexts[nCurrCameraIndex], NULL);
+    //    int ret= av_interleaved_write_frame(format_contexts[nCurrCameraIndex], NULL);
         av_packet_unref(pkts_[nCurrCameraIndex]);
         if (ret < 0) 
         {
@@ -497,7 +508,7 @@ private:
     std::vector<AVFormatContext *> format_contexts; 
     std::vector<AVCodecContext *> codec_contexts_;
     // std::vector<std::vector<AVCodecContext *>>  vec_codec_contexts_;
-    std::vector<std::priority_queue<AVPacket*, std::vector<AVPacket*>, PacketComparator>>  vec_queue_pkts_;
+    // std::vector<std::priority_queue<AVPacket*, std::vector<AVPacket*>, PacketComparator>>  vec_queue_pkts_;
 
     std::vector<AVStream *> video_streams_;
     std::vector<SwsContext *> sws_ctx_ ;
@@ -508,7 +519,7 @@ private:
     std::vector<bool> results_;
     std::vector<std::mutex> codecMutexes_;
     std::vector< unsigned int>  frame_cnts;
-    std::ofstream outputFile;
+    // std::ofstream outputFile;
 
 
 

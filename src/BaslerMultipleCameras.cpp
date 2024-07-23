@@ -309,14 +309,10 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         // m_queueGrabRes =  std::vector<boost::lockfree::queue<DATA,  boost::lockfree::capacity<500> >>(m_uDeviceNum);
         m_queueGrabRes.resize(m_uDeviceNum);
         // m_queueGrabRes = std::vector<tbb::concurrent_queue<DATA>>(m_uDeviceNum);
-        for (int i = 0; i < m_uDeviceNum; i++) {
-            
-            // m_queueGrabRes.push_back(moodycamel::ConcurrentQueue<DATA>());
-            // m_queueGrabRes.emplace_back(boost::lockfree::queue<DATA>());
-        // converter->initializeContexts("AllCameras", m_mapSerials);
-        }
+
+        
         // outfile.open("bayer8_2.bin", std::ios::binary);
-        m_threadPool.reset(m_uDeviceNum);
+        // m_threadPool.reset(m_uDeviceNum);
 
         m_mProduceConsumeMutexes_= std::vector<std::mutex>(m_uDeviceNum);
         m_cProduceConsumeConds_ = condVector(m_uDeviceNum);
@@ -542,7 +538,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 {
  
-    converter->InitializeSingleGstPipeline(nCurCameraIndex);
+    // converter->InitializeSingleGstPipeline(nCurCameraIndex);
     // std::this_thread::sleep_until(m_tWakeupTime);
     // u_int8_t *tmpBuffer = (u_int8_t*)malloc(m_uHeight* m_uWidth);
     m_bsCameras[nCurCameraIndex].StartGrabbing( GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
@@ -585,6 +581,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
            {
         
+            
+
 
             // std::lock_guard<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
             // clock_t start = clock();
@@ -595,12 +593,14 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             // std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
             
             // if (i > 100) 
-            converter->push_data2(pImageBuffer, nCurCameraIndex);
 
             // converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
             // memcpy(tmpBuffer, pImageBuffer, bufferSize);
 
-
+            bool res = converter->convertAndEncodeBayerToH264(pImageBuffer, nCurCameraIndex, i);
+            if (res  )
+                converter->writeSingleFrame2MP4(nCurCameraIndex);
+                // FPS_CALC ("Consuming from Buffer callback", nCurCameraIndex);  
             
             
             // DATA data{tmpBuffer, timeStamp, bufferSize, serialNumber};
@@ -634,10 +634,6 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
    
     } 
-    // converter->StartSingleGstPipeline(nCurCameraIndex);
-
-    converter->CloseSingleGstPipeline(nCurCameraIndex);
-   
 
     // BayerToH264ConverterNvidiaCodec::exit_flag.store(true);
     // m_bExit=true;
@@ -698,7 +694,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 5;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 3;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
@@ -854,7 +850,10 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     
     file.close();
     // converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
-    converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
+    // converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
+    converter = std::make_unique<BayerToH264ConverterFFMPEG>(m_uDeviceNum, m_uWidth, m_uHeight);
+    converter->initializeContexts("Device", m_mapSerials);
+
 
 
 
@@ -864,6 +863,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     {
         for (size_t i = 0; i < m_uDeviceNum; ++i)
         {
+            
             
             // bayer_device_srcs_.push_back(std::make_unique< npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
             // rgba_device_dsts_.push_back(std::make_unique< npp::ImageNPP_8u_C4>(m_uWidth, m_uHeight, true));
@@ -1353,7 +1353,8 @@ int BaslerMultipleCameras::StopGrabbing()
     // }
    
     
-   
+   converter->close();
+
 
     float tot_loss =0;
     for(int i = 0; i <m_uDeviceNum;i++){

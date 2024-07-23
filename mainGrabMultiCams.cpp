@@ -33,7 +33,6 @@ int main(int argc, char *argv[]) {
         return -1;
 
     } 
-    gst_init(&argc, &argv);
 
     std::string cameraSettingsFile(argv[1]);
 

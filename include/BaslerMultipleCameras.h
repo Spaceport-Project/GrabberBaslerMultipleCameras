@@ -28,9 +28,9 @@
 #include <pylon/gige/GigETransportLayer.h>
 #include <pylon/gige/ActionTriggerConfiguration.h>
 #include <pylon/gige/BaslerGigEDeviceInfo.h>
-// #include "Bayer2H264ConverterFFMPEG.h"
+#include "Bayer2H264ConverterFFMPEG.h"
 // #include "Bayer2H264ConverterNvidiaCodec.h"
-#include "Bayer2H264ConverterGST.h"
+// #include "Bayer2H264ConverterGST.h"
 // #include "SharedQueue.h"
 #include "ImageBuffer.h"
 // #include "SafeVector.h"
@@ -42,7 +42,6 @@
 // #include <ImagesCPU.h>
 // #include <ImagesNPP.h>
 
-#include "NvEncoderCuda.h"
 
 // #include "memcopy_func.h"
 
@@ -118,8 +117,8 @@ private:
     condVector              m_cProduceConsumeConds_;
 
     // std::unique_ptr<BayerToH264ConverterNvidiaCodec> converter;
-    std::unique_ptr<BayerToH264ConverterGST> converter;
-
+    // std::unique_ptr<BayerToH264ConverterGST> converter;
+     std::unique_ptr<BayerToH264ConverterFFMPEG> converter;
 
     std::mutex              m_mWriteMp4Mutex;
     std::vector<std::mutex> m_mProduceConsumeMutexes_;
