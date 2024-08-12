@@ -128,12 +128,16 @@ private:
     std::map<int, std::string> m_mapModels; 
     // std::vector<ImageBuffer<CBaslerUniversalGrabResultPtr> > m_queueGrabRes;
     // std::vector<SafeQueue<DATA>>  m_queueGrabRes;
-     std::vector<std::queue<DATA>>  m_queueGrabRes;
+    std::vector<std::queue<DATA>>  m_queueGrabRes;
+    std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
+    std::vector<CUcontext> cu_contexts_;
+    std::vector<CUdevice> cuDevices_;
+
+
     // std::vector<moodycamel::ConcurrentQueue<DATA>> m_queueGrabRes;
     // std::vector<boost::lockfree::queue<DATA, boost::lockfree::capacity<500> >> m_queueGrabRes;
     // std::vector<tbb::concurrent_queue<DATA>> m_queueGrabRes;
 
-    BS::thread_pool m_threadPool;
     // ThreadPool m_threadPool;
     // std::ofstream outfile;
 

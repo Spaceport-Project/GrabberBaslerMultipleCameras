@@ -424,7 +424,7 @@ void NvEncoder::MapResources(uint32_t bfrIdx)
     }
 }
 
-void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, NV_ENC_PIC_PARAMS *pPicParams)
+void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket,  uint64_t timestamp, NV_ENC_PIC_PARAMS *pPicParams)
 {
     vPacket.clear();
     if (!IsHWEncoderInitialized())
@@ -436,7 +436,7 @@ void NvEncoder::EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, NV_ENC_P
 
     MapResources(bfrIdx);
 
-    NVENCSTATUS nvStatus = DoEncode(m_vMappedInputBuffers[bfrIdx], m_vBitstreamOutputBuffer[bfrIdx], pPicParams);
+    NVENCSTATUS nvStatus = DoEncode(m_vMappedInputBuffers[bfrIdx], m_vBitstreamOutputBuffer[bfrIdx], timestamp, pPicParams);
 
     if (nvStatus == NV_ENC_SUCCESS || nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
     {
@@ -496,7 +496,9 @@ void NvEncoder::GetSequenceParams(std::vector<uint8_t> &seqParams)
     seqParams.insert(seqParams.end(), &spsppsData[0], &spsppsData[spsppsSize]);
 }
 
-NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer, NV_ENC_PIC_PARAMS *pPicParams)
+
+
+NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer,  uint64_t timestamp, NV_ENC_PIC_PARAMS *pPicParams)
 {
     NV_ENC_PIC_PARAMS picParams = {};
     if (pPicParams)
@@ -511,6 +513,9 @@ NVENCSTATUS NvEncoder::DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR 
     picParams.inputHeight = GetEncodeHeight();
     picParams.outputBitstream = outputBuffer;
     picParams.completionEvent = GetCompletionEvent(m_iToSend % m_nEncoderBuffer);
+    if (timestamp != 0)
+        picParams.inputTimeStamp = timestamp;
+
     NVENCSTATUS nvStatus = m_nvenc.nvEncEncodePicture(m_hEncoder, &picParams);
 
     return nvStatus; 
@@ -566,6 +571,14 @@ void NvEncoder::GetEncodedPacket(std::vector<NV_ENC_OUTPUT_PTR> &vOutputBuffer, 
 
             m_IVFUtils.WriteFrameHeader(vPacket[i], lockBitstreamData.bitstreamSizeInBytes, lockBitstreamData.outputTimeStamp);
         }
+        if (m_bWriteIVFFileHeader)
+        {
+            m_IVFUtils.WriteFileHeader(vPacket[i], MAKE_FOURCC('H', '2', '6', '4'), m_initializeParams.encodeWidth, m_initializeParams.encodeHeight, m_initializeParams.frameRateNum, m_initializeParams.frameRateDen, 0xFFFF);
+            m_bWriteIVFFileHeader = false;
+        }
+
+        m_IVFUtils.WriteFrameHeader(vPacket[i], lockBitstreamData.bitstreamSizeInBytes, lockBitstreamData.outputTimeStamp);
+
         vPacket[i].insert(vPacket[i].end(), &pData[0], &pData[lockBitstreamData.bitstreamSizeInBytes]);
         
         i++;

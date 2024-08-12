@@ -57,7 +57,7 @@ public:
     *  in pOutputBuffer. If there is buffering enabled, this may return without 
     *  any data in pOutputBuffer.
     */
-    void EncodeFrame(std::vector<NV_ENC_OUTPUT_PTR> &pOutputBuffer, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
+    void EncodeFrame(std::vector<NV_ENC_OUTPUT_PTR> &pOutputBuffer, uint64_t timestamp=0, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
 
     /**
     *  @brief  This function to flush the encoder queue.

@@ -156,7 +156,7 @@ void NvEncoderOutputInVidMemCuda::MapResources(uint32_t bfrIdx)
     m_vMappedOutputBuffers[bfrIdx] = mapInputResourceBitstreamBuffer.mappedResource;
 }
 
-void NvEncoderOutputInVidMemCuda::EncodeFrame(std::vector<NV_ENC_OUTPUT_PTR> &pOutputBuffer, NV_ENC_PIC_PARAMS *pPicParams)
+void NvEncoderOutputInVidMemCuda::EncodeFrame(std::vector<NV_ENC_OUTPUT_PTR> &pOutputBuffer,  uint64_t timestamp, NV_ENC_PIC_PARAMS *pPicParams)
 {
     pOutputBuffer.clear();
     if (!IsHWEncoderInitialized())
@@ -168,7 +168,7 @@ void NvEncoderOutputInVidMemCuda::EncodeFrame(std::vector<NV_ENC_OUTPUT_PTR> &pO
     
     MapResources(bfrIdx);
     
-    NVENCSTATUS nvStatus = DoEncode(m_vMappedInputBuffers[bfrIdx], m_vMappedOutputBuffers[bfrIdx], pPicParams);
+    NVENCSTATUS nvStatus = DoEncode(m_vMappedInputBuffers[bfrIdx], m_vMappedOutputBuffers[bfrIdx], timestamp,  pPicParams);
     
     if (nvStatus == NV_ENC_SUCCESS || nvStatus == NV_ENC_ERR_NEED_MORE_INPUT)
     {

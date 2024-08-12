@@ -37,7 +37,7 @@ class BayerToH264ConverterNvidiaCodec{
 public:
     using NvEncPtr = std::unique_ptr<NvEncoder, std::function<void(NvEncoder*)>>;
 
-    BayerToH264ConverterNvidiaCodec(std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps);
+    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps);
   
     bool close() ;
 
@@ -46,12 +46,16 @@ public:
 
      void InitializeEncoder( NvEncPtr &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
     void InitializeEncoder( std::unique_ptr<NvEncoderOutputInVidMemCuda> &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
+    void  EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>   &bayerDevice, int n_cam_index,  uint64_t timestamp,  bool );
+    void  EncodeCudaFromDevice( int n_cam_index, bool flag_exit);
 
     void EncodeCuda(uint8_t * &pHostFrame, int n_cam_index);
     void EncodeCudaOpInVidMem(uint8_t * &pHostFrame, int n_cam_index);
    
     bool convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int64_t time_stamp) ;
-  
+    void CopyImageFromHost2Device( uint8_t *, int);
+    static void ShowEncoderCapability();
+    // std::vector<CUcontext> & getCuContexts() {return cu_contexts_;};
    
     std::vector<bool> & getResults();
 
@@ -63,7 +67,7 @@ public:
     private:
         void initialize();
            
-        
+       
 
     
     private:
@@ -77,11 +81,11 @@ public:
         std::vector<std::mutex> codecMutexes_;
         std::vector< unsigned int>  frame_cnts;
         std::ofstream outputFile;
-        std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
+        // std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
         std::vector<std::unique_ptr<npp::ImageNPP_8u_C4>> rgba_device_dsts_;
         NvEncoderInitParam encode_CLI_options_;
         NV_ENC_BUFFER_FORMAT enc_format_ ;//= NV_ENC_BUFFER_FORMAT_ARGB;
-        // std::vector<CUcontext> cu_contexts_;
+        const std::vector<CUcontext> &cu_contexts_;
         // CUcontext cu_context_ = nullptr ;
         std::vector<cudaStream_t> cuda_streams_;
         std::vector<NppStreamContext> npp_stream_contextes_;
@@ -93,7 +97,7 @@ public:
         std::vector<CUdeviceptr> bayer_dp_buf_vec_;
         std::vector<CUdeviceptr> rgba_dp_buf_vec_;
 
-
+        std::vector<CUdevice> cuDevices_;
         std::vector<std::ofstream> fp_outs_;
         std::map<int, std::string> &map_serial_nums_;
 

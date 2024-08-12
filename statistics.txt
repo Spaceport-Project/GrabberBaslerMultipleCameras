@@ -14,3 +14,94 @@ Video Engine %42
 24 Cameras
 GPU %20
 Video Engine %40
+
+Nvidia video codec sdk
+24 Cameras
+GPU %30
+Video Engine %99
+14. Camera, Average framerate(Grabbing Buffer FPS): 30.4105 fbs.
+8. Camera, Average framerate(Grabbing Buffer FPS): 30.454 fbs.
+19. Camera, Average framerate(Grabbing Buffer FPS): 30.0788 fbs.
+18. Camera, Average framerate(Grabbing Buffer FPS): 30.1943 fbs.
+15. Camera, Average framerate(Grabbing Buffer FPS): 29.9573 fbs.
+3. Camera, Average framerate(Grabbing Buffer FPS): 28.9974 fbs.
+13. Camera, Average framerate(Grabbing Buffer FPS): 29.3589 fbs.
+1. Camera, Average framerate(Grabbing Buffer FPS): 29.1217 fbs.
+2. Camera, Average framerate(Grabbing Buffer FPS): 29.1999 fbs.
+Error: e1000014
+12. Camera, Average framerate(Grabbing Buffer FPS): 28.5836 fbs.
+4. Camera, Average framerate(Grabbing Buffer FPS): 29.4508 fbs.
+6. Camera, Average framerate(Grabbing Buffer FPS): 29.2807 fbs.
+20. Camera, Average framerate(Grabbing Buffer FPS): 30.6129 fbs.
+16. Camera, Average framerate(Grabbing Buffer FPS): 29.7519 fbs.
+7. Camera, Average framerate(Grabbing Buffer FPS): 29.991 fbs.
+23. Camera, Average framerate(Grabbing Buffer FPS): 30.4249 fbs.
+17. Camera, Average framerate(Grabbing Buffer FPS): 29.8298 fbs.
+10. Camera, Average framerate(Grabbing Buffer FPS): 30.9914 fbs.
+5. Camera, Average framerate(Grabbing Buffer FPS): 28.6577 fbs.
+0. Camera, Average framerate(Grabbing Buffer FPS): 29.9535 fbs.
+22. Camera, Average framerate(Grabbing Buffer FPS): 30.2099 fbs.
+9. Camera, Average framerate(Grabbing Buffer FPS): 29.6644 fbs.
+11. Camera, Average framerate(Grabbing Buffer FPS): 29.9333 fbs.
+21. Camera, Average framerate(Grabbing Buffer FPS): 29.7162 fbs.
+14. Camera, Average framerate(Grabbing Buffer FPS): 29.9963 fbs.
+15. Camera, Average framerate(Grabbing Buffer FPS): 30.0061 fbs.
+8. Camera, Average framerate(Grabbing Buffer FPS): 29.3395 fbs.
+19. Camera, Average framerate(Grabbing Buffer FPS): 29.2342 fbs.
+18. Camera, Average framerate(Grabbing Buffer FPS): 29.2202 fbs.
+3. Camera, Average framerate(Grabbing Buffer FPS): 31.2777 fbs.
+1. Camera, Average framerate(Grabbing Buffer FPS): 30.2884 fbs.
+13. Camera, Average framerate(Grabbing Buffer FPS): 31.1331 fbs.
+2. Camera, Average framerate(Grabbing Buffer FPS): 30.7794 fbs.
+4. Camera, Average framerate(Grabbing Buffer FPS): 30.2916 fbs.
+12. Camera, Average framerate(Grabbing Buffer FPS): 31.388 fbs.
+6. Camera, Average framerate(Grabbing Buffer FPS): 29.9886 fbs.
+20. Camera, Average framerate(Grabbing Buffer FPS): 30.4547 fbs.
+7. Camera, Average framerate(Grabbing Buffer FPS): 29.9267 fbs.
+16. Camera, Average framerate(Grabbing Buffer FPS): 29.2542 fbs.
+23. Camera, Average framerate(Grabbing Buffer FPS): 29.617 fbs.
+10. Camera, Average framerate(Grabbing Buffer FPS): 29.6099 fbs.
+0. Camera, Average framerate(Grabbing Buffer FPS): 29.9993 fbs.
+17. Camera, Average framerate(Grabbing Buffer FPS): 28.5919 fbs.
+5. Camera, Average framerate(Grabbing Buffer FPS): 29.3191 fbs.
+22. Camera, Average framerate(Grabbing Buffer FPS): 29.9666 fbs.
+9. Camera, Average framerate(Grabbing Buffer FPS): 30.0033 fbs.
+15. Camera, Average framerate(Grabbing Buffer FPS): 29.9946 fbs.
+21. Camera, Average framerate(Grabbing Buffer FPS): 29.5257 fbs.
+14. Camera, Average framerate(Grabbing Buffer FPS): 29.5209 fbs.
+1. Camera, Average framerate(Grabbing Buffer FPS): 30.8552 fbs.
+18. Camera, Average framerate(Grabbing Buffer FPS): 30.7516 fbs.
+19. Camera, Average framerate(Grabbing Buffer FPS): 30.0793 fbs.
+2. Camera, Average framerate(Grabbing Buffer FPS): 28.4002 fbs.
+8. Camera, Average framerate(Grabbing Buffer FPS): 29.3751 fbs.
+13. Camera, Average framerate(Grabbing Buffer FPS): 29.243 fbs.
+3. Camera, Average framerate(Grabbing Buffer FPS): 29.3135 fbs.
+11. Camera, Average framerate(Grabbing Buffer FPS): 28.5472 fbs.
+4. Camera, Average framerate(Grabbing Buffer FPS): 29.7902 fbs.
+6. Camera, Average framerate(Grabbing Buffer FPS): 30.1289 fbs.
+12. Camera, Average framerate(Grabbing Buffer FPS): 30.0375 fbs.
+20. Camera, Average framerate(Grabbing Buffer FPS): 29.4424 fbs.
+7. Camera, Average framerate(Grabbing Buffer FPS): 30.6033 fbs.
+16. Camera, Average framerate(Grabbing Buffer FPS): 31.0616 fbs.
+23. Camera, Average framerate(Grabbing Buffer FPS): 30.9868 fbs.
+0. Camera, Average framerate(Grabbing Buffer FPS): 29.1788 fbs.
+10. Camera, Average framerate(Grabbing Buffer FPS): 29.5764 fbs.
+5. Camera, Average framerate(Grabbing Buffer FPS): 30.5472 fbs.
+17. Camera, Average framerate(Grabbing Buffer FPS): 31.3546 fbs.
+9. Camera, Average framerate(Grabbing Buffer FPS): 30.0107 fbs.
+22. Camera, Average framerate(Grabbing Buffer FPS): 29.9981 fbs.
+15. Camera, Average framerate(Grabbing Buffer FPS): 29.3783 fbs.
+21. Camera, Average framerate(Grabbing Buffer FPS): 30.6147 fbs.
+18. Camera, Average framerate(Grabbing Buffer FPS): 29.9968 fbs.
+1. Camera, Average framerate(Grabbing Buffer FPS): 29.9928 fbs.
+11. Camera, Average framerate(Grabbing Buffer FPS): 31.5709 fbs.
+13. Camera, Average framerate(Grabbing Buffer FPS): 30.7498 fbs.
+3. Camera, Average framerate(Grabbing Buffer FPS): 30.8481 fbs.
+^C
+Ctrl-C detected, exit condition set to true.
+14. Camera, Average framerate(Grabbing Buffer FPS): 29.2806 fbs.
+19. Camera, Average framerate(Grabbing Buffer FPS): 29.3674 fbs.
+2. Camera, Average framerate(Grabbing Buffer FPS): 30.6453 fbs.
+8. Camera, Average framerate(Grabbing Buffer FPS): 30.6559 fbs.
+
+

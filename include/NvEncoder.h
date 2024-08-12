@@ -124,7 +124,7 @@ public:
     *  data, which has been copied to an input buffer obtained from the
     *  GetNextInputFrame() function.
     */
-    virtual void EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
+    virtual void EncodeFrame(std::vector<std::vector<uint8_t>> &vPacket,  uint64_t timestamp = 0, NV_ENC_PIC_PARAMS *pPicParams = nullptr);
 
     /**
     *  @brief  This function to flush the encoder queue.
@@ -316,7 +316,7 @@ protected:
     *  @brief This function is used to submit the encode commands to the  
     *         NVENC hardware.
     */
-    NVENCSTATUS DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer, NV_ENC_PIC_PARAMS *pPicParams);
+    NVENCSTATUS DoEncode(NV_ENC_INPUT_PTR inputBuffer, NV_ENC_OUTPUT_PTR outputBuffer,  uint64_t timestamp, NV_ENC_PIC_PARAMS *pPicParams);
 
     /**
     *  @brief This function is used to submit the encode commands to the 

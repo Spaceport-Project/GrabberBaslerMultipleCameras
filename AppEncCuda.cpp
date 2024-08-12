@@ -442,6 +442,7 @@ void ParseCommandLine(int argc, char *argv[], char *szInputFileName, int &nWidth
 	}
 	std::cout<<"initial params:"<<oss.str().c_str()<<std::endl;
 	initParam = NvEncoderInitParam(oss.str().c_str());
+	std::cout<<"Encode type:"<<initParam.IsCodecH264()<<std::endl;
 }
 
 template<class EncoderClass>

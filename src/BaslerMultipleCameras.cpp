@@ -46,7 +46,7 @@ do \
 { \
     double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
     ++count; \
-    if (now - last >= 1.0) \
+    if (now - last >= 3.0) \
     { \
       std::cerr << "\033[1;31m";\
       std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
@@ -316,7 +316,6 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         // converter->initializeContexts("AllCameras", m_mapSerials);
         }
         // outfile.open("bayer8_2.bin", std::ios::binary);
-        m_threadPool.reset(m_uDeviceNum);
 
         m_mProduceConsumeMutexes_= std::vector<std::mutex>(m_uDeviceNum);
         m_cProduceConsumeConds_ = condVector(m_uDeviceNum);
@@ -336,8 +335,31 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 
         // m_cEndGrabConds_ = condVector(m_uDeviceNum);
 
+
+
         
-    
+        ck(cuInit(0));
+
+        int nGpu = 0;
+		ck(cuDeviceGetCount(&nGpu));
+        // nGpu =1;
+		
+        std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
+        cu_contexts_.resize(nGpu, nullptr);
+        cuDevices_.resize(nGpu, 0);
+        for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
+            ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
+            char szDeviceName[80];
+            ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iGpu]));
+            std::cout << "GPU in use: " << szDeviceName << std::endl;
+            ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
+        }
+
+        
+
+     
+
+
     } 
     else 
     {
@@ -351,181 +373,232 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 
  BaslerMultipleCameras::~BaslerMultipleCameras(){
   
+     for (int i =0; i<m_uDeviceNum;i++)
+        ck(cuCtxDestroy(cu_contexts_[i]));
     CloseDevices();
+   
 }	   
 
 // Thread Function for save images on disk for every camera
 int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex)
 {
         unsigned int i =0;
-
+       
+        // if (nCurCameraIndex < int(std::ceil(m_uDeviceNum*19.0/24)))
+        //     cudaSetDevice(0);
+        // else cudaSetDevice(1);
         // std::this_thread::sleep_for(std::chrono::milliseconds(300));
         // // npp::ImageNPP_8u_C1 bayer_device_src(m_uWidth, m_uHeight, true);
         // // npp::ImageNPP_8u_C4 rgb_device_dst(m_uWidth, m_uHeight, true);
 
         // u_int8_t *tmpBuffer = (u_int8_t*)malloc(m_uHeight* m_uWidth);
         // unsigned int i =0;
-        // while(true) {
-        //         // if (m_queueGrabRes[nCurCameraIndex].empty())
-        //         //     break;
-        //         // std::cout<<"m_bExit:"<<m_bExit<<std::endl;
+        unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
+        while(true) {
+                // if (m_queueGrabRes[nCurCameraIndex].empty())
+                //     break;
+                // std::cout<<"m_bExit:"<<m_bExit<<std::endl;
+                  
+                if (m_bExit) {
+                    m_bGrabExitFlag = true;
+                    // m_bGrabExitFlag.store(true, std::memory_order_release);
+                    // std::cout<<"m_grab_flag 2:"<<m_bGrabExitFlag<<std::endl;
 
-        //         if (m_bExit) {
-        //             m_bGrabExitFlag = true;
-        //             // m_bGrabExitFlag.store(true, std::memory_order_release);
-        //             // std::cout<<"m_grab_flag 2:"<<m_bGrabExitFlag<<std::endl;
-
-        //             break; 
-        //         }
-        //         std::unique_lock<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
-        //         // while ( /*!m_bExit.load(std::memory_order_acquire) || */ m_queueGrabRes[nCurCameraIndex].empty()){
-        //         //     m_cProduceConsumeConds_[nCurCameraIndex].wait(lock);
-        //         // }
-
-        //         m_cProduceConsumeConds_[nCurCameraIndex].wait(lock, [&] {
-        //             return !m_queueGrabRes[nCurCameraIndex].empty();
-        //         });
-        //         // DATA buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
-        //         lock.unlock();
-        //         // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
-        //         // 
-        //         // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                    break; 
+                }
 
                 
-        //         // m_bExit.store(true, std::memory_order_release);
-        //         // m_bsCameras[nCurCameraIndex].StopGrabbing();
+                std::unique_lock<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
+                // while ( /*!m_bExit.load(std::memory_order_acquire) || */ m_queueGrabRes[nCurCameraIndex].empty()){
+                //     m_cProduceConsumeConds_[nCurCameraIndex].wait(lock);
+                // }
 
-        //         // break;
+                m_cProduceConsumeConds_[nCurCameraIndex].wait(lock, [&] {
+                    return !m_queueGrabRes[nCurCameraIndex].empty();
+                });
+                // DATA buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
+                // lock.unlock();
+                // std::this_thread::sleep_for(std::chrono::milliseconds(10000));
+                // 
+                // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-        //         DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
-        //         m_queueGrabRes[nCurCameraIndex].pop();
-        //         // free(buff_item.image);
-        //         buff_item.image = NULL;
                 
+                // m_bExit.store(true, std::memory_order_release);
+                // m_bsCameras[nCurCameraIndex].StopGrabbing();
 
-        //         std::string filename= "/mnt/m2_storage/test_images/GrabbedImage_" + std::to_string (buff_item.timeStamp/1000000) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
-        //         String_t file_name(filename.c_str());
-        //         // std::cout<<filename<<std::endl;
-        //         std::ofstream outfile (filename);
-        //         // outfile.write(reinterpret_cast<char*>(tmpBuffer), imageSize);
-        //         outfile.close();
+                // break;
+
+                DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
+                m_queueGrabRes[nCurCameraIndex].pop();
+                // if (nCurCameraIndex < int(std::ceil(m_uDeviceNum*19.0/24)))
+                //     cudaSetDevice(0);
+                // else cudaSetDevice(1);
+                void *device = cu_contexts_[nCurCameraIndex/sep_cam_num];
+                CUDA_DRVAPI_CALL(cuCtxSetCurrent((CUcontext)device));
+                bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
+
+                // converter->CopyImageFromHost2Device(buff_item.image, nCurCameraIndex);
+                lock.unlock();
+                free(buff_item.image);
+                buff_item.image = NULL;
+                // if (nCurCameraIndex==0)
+                //         std::cout<<bayer_device_srcs_[nCurCameraIndex]->pitch()<<std::endl;
+
+                // converter->EncodeCudaFromDevice(nCurCameraIndex, false);
+               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
+                // CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
+
+              
+                // std::string filename= "/mnt/m2_storage/test_images/GrabbedImage_" + std::to_string (buff_item.timeStamp/1000000) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
+                // String_t file_name(filename.c_str());
+                // // std::cout<<filename<<std::endl;
+                // std::ofstream outfile (filename);
+                // // outfile.write(reinterpret_cast<char*>(tmpBuffer), imageSize);
+                // outfile.close();
          
              
               
-        //         // continue;
+                // continue;
 
-        //     //     int imageSize = buff_item.imageSize;
-        //     //  //  
-        //         // std::copy(buff_item.image, buff_item.image + imageSize, tmpBuffer);
-        //     //    tmpBuffer = nullptr;
-        //     //    tmpBuffer = buff_item.image;
-        //         // 
+            //     int imageSize = buff_item.imageSize;
+            //  //  
+                // std::copy(buff_item.image, buff_item.image + imageSize, tmpBuffer);
+            //    tmpBuffer = nullptr;
+            //    tmpBuffer = buff_item.image;
+                // 
                  
                 
              
            
          
 
-        //         // std::copy(buff_item.image, buff_item.image + imageSize, tmpBuffer);
-        //         // buff_item.image.reset();
-        //         // free(buff_item.image);
-        //         // buff_item.image = NULL;
+                // std::copy(buff_item.image, buff_item.image + imageSize, tmpBuffer);
+                // buff_item.image.reset();
+                // free(buff_item.image);
+                // buff_item.image = NULL;
            
-        //         // memset(tmpBuffer, 0, imageSize);
+                // memset(tmpBuffer, 0, imageSize);
                 
-        //         // clock_t start = clock();
+                // clock_t start = clock();
 
               
-        //         // bayer_device_src->copyFrom(tmpBuffer, bayer_device_src->pitch());
+                // bayer_device_src->copyFrom(tmpBuffer, bayer_device_src->pitch());
                
             
-        //         // clock_t end = clock();
+                // clock_t end = clock();
                
-        //         // NppStatus stat = nppiCFAToRGBA_8u_C1AC4R(bayer_device_src->data(), (int)bayer_device_src->width(), {(int)bayer_device_src->width(), (int)bayer_device_src->height()}, 
-        //         //             {0, 0, (int)bayer_device_src->width(),(int)bayer_device_src->height() }, (Npp8u *)rgb_device_dst.data(), (int)rgb_device_dst.width()*4, NPPI_BAYER_RGGB, NPPI_INTER_UNDEFINED, (Npp8u)100);
+                // NppStatus stat = nppiCFAToRGBA_8u_C1AC4R(bayer_device_src->data(), (int)bayer_device_src->width(), {(int)bayer_device_src->width(), (int)bayer_device_src->height()}, 
+                //             {0, 0, (int)bayer_device_src->width(),(int)bayer_device_src->height() }, (Npp8u *)rgb_device_dst.data(), (int)rgb_device_dst.width()*4, NPPI_BAYER_RGGB, NPPI_INTER_UNDEFINED, (Npp8u)100);
               
-        //         // clock_t end = clock();
+                // clock_t end = clock();
 
-        //         //  free(buff_item.image);
-        //         // buff_item.image = NULL;
+                //  free(buff_item.image);
+                // buff_item.image = NULL;
 
-        //         // double elapsed = (double(end-start))/CLOCKS_PER_SEC;
-        //         // if (i % 20 ==0) 
-        //         //     printf("time elapsed by write in second:%f\n",elapsed);
-
-                
-        //         // std::cout<<"status of bayer2rgb conversion:"<<stat<<std::endl;
-        //         // std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
-        //         // SaveBayerAsTiff(filename, buff_item.image.get(), m_uWidth, m_uHeight);
-        //         // CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image.get(), imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
-        //         // start = clock();
-        //         // std::ofstream outfile (filename);
-        //         //     outfile.write(reinterpret_cast<char*>(tmpBuffer), imageSize);
-        //         //     // outfile.write(reinterpret_cast<char*>( buff_item.image.get()), imageSize);
-        //         //     // outfile.write(reinterpret_cast<char*>( buff_item.image.get()), imageSize);
+                // double elapsed = (double(end-start))/CLOCKS_PER_SEC;
+                // if (i % 20 ==0) 
+                //     printf("time elapsed by write in second:%f\n",elapsed);
 
                 
-        //         // outfile.close();
+                // std::cout<<"status of bayer2rgb conversion:"<<stat<<std::endl;
+                // std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        //         // end = clock();
-        //         // elapsed = double(end-start)/CLOCKS_PER_SEC;
-        //         // printf("time elapsed by write in second:%f\n",elapsed);
+                // SaveBayerAsTiff(filename, buff_item.image.get(), m_uWidth, m_uHeight);
+                // CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image.get(), imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
+                // start = clock();
+                // std::ofstream outfile (filename);
+                //     outfile.write(reinterpret_cast<char*>(tmpBuffer), imageSize);
+                //     // outfile.write(reinterpret_cast<char*>( buff_item.image.get()), imageSize);
+                //     // outfile.write(reinterpret_cast<char*>( buff_item.image.get()), imageSize);
+
+                
+                // outfile.close();
+
+                // end = clock();
+                // elapsed = double(end-start)/CLOCKS_PER_SEC;
+                // printf("time elapsed by write in second:%f\n",elapsed);
 
 
 
 
-        //         // bool res = converter->convertAndEncodeBayerToH264(buff_item.image.get(), nCurCameraIndex, buff_item.timeStamp);
-        //         // if (res  )
-        //         //         // converter->push
-        //         //     converter->writeSingleFrame2MP4(nCurCameraIndex);
-        //         // FPS_CALC ("Consuming from Buffer callback", nCurCameraIndex);
+                // bool res = converter->convertAndEncodeBayerToH264(buff_item.image.get(), nCurCameraIndex, buff_item.timeStamp);
+                // if (res  )
+                //         // converter->push
+                //     converter->writeSingleFrame2MP4(nCurCameraIndex);
+                // FPS_CALC ("Consuming from Buffer callback", nCurCameraIndex);
 
-        //         i++;
-        //         // if (i > 50) return 0;
+                i++;
+                // if (i > 50) return 0;
                
-        //  }
-        //  return 1;
-        //  m_bExit.store(true, std::memory_order_release);
-         while (m_queueGrabRes[nCurCameraIndex].size() != 0 ){
-                //  DATA buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
+         }
+        while (m_queueGrabRes[nCurCameraIndex].size() != 0 ) {
 
-             DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
-             m_queueGrabRes[nCurCameraIndex].pop();
+            DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
+            m_queueGrabRes[nCurCameraIndex].pop();
+            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num];
+            CUDA_DRVAPI_CALL(cuCtxSetCurrent((CUcontext)device));
 
-            // DATA buff_item;
-            // m_queueGrabRes[nCurCameraIndex].try_pop(buff_item);
-            // while(!m_queueGrabRes[nCurCameraIndex].try_dequeue(buff_item));
-            int imageSize = buff_item.imageSize;
-            
-            // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
+            // converter->CopyImageFromHost2Device(buff_item.image, nCurCameraIndex);
 
-            std::string filename= "/mnt/m2_storage/test_images/GrabbedImage_" + std::to_string (buff_item.timeStamp/1000000) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
-            String_t file_name(filename.c_str());
-            // delete [] buff_item.image;
-            // buff_item.image.reset();
-            
-            // for (int j = 0 ; j < 15; j++)
-            CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image, imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
-            // SaveBayerAsTiff(filename, buff_item.image.get(), m_uWidth, m_uHeight);
-            // CImagePersistence::Save(ImageFileFormat_Png, file_name, (void *)buff_item.image, imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
-
-            
             free(buff_item.image);
             buff_item.image = NULL;
-            // std::ofstream outfile (filename);
-            // // outfile.write(reinterpret_cast<char*>(buff_item.image.get()), imageSize);
-            // outfile.close();
+            if (m_queueGrabRes[nCurCameraIndex].size() == 0) 
+                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  true);
+                //converter->EncodeCudaFromDevice(nCurCameraIndex, true);
+            else  
+                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
+                //converter->EncodeCudaFromDevice( nCurCameraIndex, false);
+
+            // CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
+
+
+             i++;
+        }
+
+
+
+
+
+
+
+        //  while (m_queueGrabRes[nCurCameraIndex].size() != 0 ){
+        //         //  DATA buff_item = m_queueGrabRes[nCurCameraIndex].dequeue();
+
+        //      DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
+        //      m_queueGrabRes[nCurCameraIndex].pop();
+
+        //     // DATA buff_item;
+        //     // m_queueGrabRes[nCurCameraIndex].try_pop(buff_item);
+        //     // while(!m_queueGrabRes[nCurCameraIndex].try_dequeue(buff_item));
+        //     int imageSize = buff_item.imageSize;
+            
+        //     // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+        //     std::string filename= "/mnt/m2_storage/test_images/GrabbedImage_" + std::to_string (buff_item.timeStamp/1000000) + "_" + std::to_string (nCurCameraIndex) + ".tiff";
+        //     String_t file_name(filename.c_str());
+        //     // delete [] buff_item.image;
+        //     // buff_item.image.reset();
+            
+        //     // for (int j = 0 ; j < 15; j++)
+        //     CImagePersistence::Save(ImageFileFormat_Tiff, file_name, (void *)buff_item.image, imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
+        //     // SaveBayerAsTiff(filename, buff_item.image.get(), m_uWidth, m_uHeight);
+        //     // CImagePersistence::Save(ImageFileFormat_Png, file_name, (void *)buff_item.image, imageSize,  PixelType_BayerRG8, m_uWidth, m_uHeight, 0, ImageOrientation_TopDown );
+
+            
+        //     free(buff_item.image);
+        //     buff_item.image = NULL;
+          
           
 
-            // std::cout<< nCurCameraIndex<<".Cam, timeStamp:"<<buff_item.timeStamp<<" "<< buff_item.serialNumber<< std::endl;
+        //     // std::cout<< nCurCameraIndex<<".Cam, timeStamp:"<<buff_item.timeStamp<<" "<< buff_item.serialNumber<< std::endl;
             
-            if (m_queueGrabRes[nCurCameraIndex].size() % 10 == 0)
-            {
-                std::cout<<nCurCameraIndex<<". Cam, Buffer Size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
-            }  
-            i++;
-         }
+        //     if (m_queueGrabRes[nCurCameraIndex].size() % 10 == 0)
+        //     {
+        //         std::cout<<nCurCameraIndex<<". Cam, Buffer Size:"<< m_queueGrabRes[nCurCameraIndex].size()<<std::endl;
+        //     }  
+        //     i++;
+        //  }
         
         
         
@@ -545,8 +618,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
     m_bsCameras[nCurCameraIndex].StartGrabbing(m_uFrameNum, GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
     unsigned int i = 0;
     //   CBaslerUniversalGrabResultPtr ptrGrabResult;
-    const int DefaultTimeout_ms = 5000;
-
+    const int DefaultTimeout_ms = 500000;
    
     // std::unique_lock<std::mutex> lock(m_mEndGrabMutexes_[nCurCameraIndex]);
 
@@ -578,30 +650,30 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
            {
         
 
-            // std::lock_guard<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
-            // clock_t start = clock();
-            // std::cout<<"buffer size in grab:"<<bufferSize<<std::endl;
-          
-           
-            // uint8_t *tmpBuffer =  new uint8_t[bufferSize];// (u_int8_t*)malloc(width* height);
-            // std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
-            
-            // if (i > 100) 
-            // converter->push_data2(pImageBuffer, nCurCameraIndex);
-
-            converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
-            // memcpy(tmpBuffer, pImageBuffer, bufferSize);
-
-
+                std::lock_guard<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
+                // clock_t start = clock();
+                // std::cout<<"buffer size in grab:"<<bufferSize<<std::endl;
             
             
-            // DATA data{tmpBuffer, timeStamp, bufferSize, serialNumber};
-            // m_queueGrabRes[nCurCameraIndex].push(data);
+                uint8_t *tmpBuffer =  new uint8_t[bufferSize];// (u_int8_t*)malloc(width* height);
+                std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
+                
+                // if (i > 100) 
+                // converter->push_data2(pImageBuffer, nCurCameraIndex);
+
+                // converter->EncodeCuda(pImageBuffer, nCurCameraIndex);
+                // memcpy(tmpBuffer, pImageBuffer, bufferSize);
+
+
+                
+                
+                DATA data{tmpBuffer, timeStamp, bufferSize, serialNumber};
+                m_queueGrabRes[nCurCameraIndex].push(data);
 
             
 
             }
-            // m_cProduceConsumeConds_[nCurCameraIndex].notify_one();
+            m_cProduceConsumeConds_[nCurCameraIndex].notify_one();
             
             // DATA data{tmpSharedptr, timeStamp, bufferSize, serialNumber};
             // m_queueGrabRes[nCurCameraIndex].enqueue(data);
@@ -626,7 +698,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
    
     } 
-   
+    
 
     // BayerToH264ConverterNvidiaCodec::exit_flag.store(true);
     // m_bExit=true;
@@ -686,7 +758,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 12;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 24;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
@@ -842,10 +914,35 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
     
     file.close();
-    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
+    unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
+
+    for (unsigned int i = 0 ; i < m_uDeviceNum; i++)
+    {
+        // ck(cuCtxCreate(&cu_contexts_[i], 0, cuDevices_[i/sep_cam_num]));
+
+        cuCtxPushCurrent(cu_contexts_[i/sep_cam_num]);
+
+        bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
+        cuCtxPopCurrent(nullptr); 
+    }
+
+
+
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
     // converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
+    // unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
+    // for (size_t i = 0; i < m_uDeviceNum; ++i)
+    // {
+    //     // if (i < int(std::ceil(m_uDeviceNum*19.0/24)))
+    //     //     cudaSetDevice(0);
+    //     // else cudaSetDevice(1);
+    //     cuCtxPushCurrent((converter->getCuContexts()[i/sep_cam_num]));
 
+    //     bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
+    //     cuCtxPopCurrent(nullptr);
 
+    //     // rgba_device_dsts_.push_back( std::make_unique<npp::ImageNPP_8u_C4> (m_uWidth, m_uHeight, true));
+    // }
 
 
 
@@ -885,7 +982,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
          
             
-            // cout<<"ptp clock:"<<m_bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
+            // // cout<<"ptp clock:"<<m_bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
             // m_bsCameras[i].PtpEnable.SetValue(false);
             // m_bsCameras[i].BslPtpPriority1.SetValue(128);
             // // Enable end-to-end delay measurement
@@ -1003,20 +1100,20 @@ int BaslerMultipleCameras::StartGrabbing()
     // WaitObject::Sleep(20000);
 
    
-    for (auto &th: m_tGrabThreads)
-    {
-        if (th.joinable())
-            th.join();
-    
-    }
-
-
-    // for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    // for (auto &th: m_tGrabThreads)
     // {
-      
-    //     m_tConsumeThreads.emplace_back(std::thread(std::bind(&BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun, this, i)));
-     
+    //     if (th.joinable())
+    //         th.join();
+    
     // }
+
+
+    for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    {
+      
+        m_tConsumeThreads.emplace_back(std::thread(std::bind(&BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun, this, i)));
+     
+    }
 
     
     return m_nExitCode;
@@ -1328,20 +1425,20 @@ int BaslerMultipleCameras::StopGrabbing()
     // m_tGrabThread.join();
 
 
-    // for (auto &th: m_tGrabThreads)
-    // {
-    //     if (th.joinable())
-    //         th.join();
+    for (auto &th: m_tGrabThreads)
+    {
+        if (th.joinable())
+            th.join();
     
-    // }
+    }
 
     
-    // for (auto &th: m_tConsumeThreads)
-    // {
-    //     if (th.joinable())
-    //       th.join();
+    for (auto &th: m_tConsumeThreads)
+    {
+        if (th.joinable())
+          th.join();
         
-    // }
+    }
    
     
    

@@ -61,6 +61,7 @@ public:
             if (tokens[i] == "-codec" && ++i != tokens.size())
             {
                 ParseString("-codec", tokens[i], vCodec, szCodecNames, &guidCodec);
+                std::cout<<"szCodecNames:"<<szCodecNames<<" "<<std::endl;
                 continue;
             }
             if (tokens[i] == "-preset" && ++i != tokens.size()) {
