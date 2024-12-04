@@ -54,7 +54,7 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_80,code=\"sm_80,com
 find_library(CUVID_LIB nvcuvid)
 find_library(NVENCODEAPI_LIB nvidia-encode)
 list(APPEND CUDA_NVCC_FLAGS "-std=c++17")
-find_package(pylon 7.4.0 REQUIRED)
+find_package(pylon 7.5.0 REQUIRED)
 
 # Boost 
 find_package(OpenCV  REQUIRED)
@@ -115,7 +115,7 @@ endif()
 target_include_directories(${GrabBaslerMultiCams}  PUBLIC  ${OpenCV_INCLUDE_DIRS}  ${CUDA_INCLUDE_DIRS}  ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
 target_link_libraries(${GrabBaslerMultiCams}      
 
-    ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY}  ${OpenCV_LIBS} pylon::pylon freeimage tbb tiff
+    ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY}  ${OpenCV_LIBS} pylon::pylon  tiff portaudio
    )
 
 install( TARGETS ${GrabBaslerMultiCams} )

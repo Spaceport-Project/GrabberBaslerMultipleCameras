@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -93,13 +95,14 @@ private:
 
 
      
-    BayerToH264ConverterNvidiaCodec::BayerToH264ConverterNvidiaCodec( const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps):
+    BayerToH264ConverterNvidiaCodec::BayerToH264ConverterNvidiaCodec( const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, const std::chrono::system_clock::time_point & time_point):
         cu_contexts_(cu_contexts),
         width_(input_width), 
         height_(input_height),
         num_devices_(device_num),
         fps_(fps),
-        map_serial_nums_(map_serial_nums)
+        map_serial_nums_(map_serial_nums),
+        time_point_(time_point)
         
     {
         enc_format_ = NV_ENC_BUFFER_FORMAT_ARGB;
@@ -605,6 +608,24 @@ private:
 
         // }
         unsigned int sep_cam_num =  std::ceil(num_devices_*19.0/24);
+        
+       
+       
+
+        auto now = time_point_;// std::chrono::system_clock::now();
+        std::time_t now_t = std::chrono::system_clock::to_time_t(now);
+        std::stringstream ss;
+           
+        ss << std::put_time(std::localtime(&now_t), "%Y-%m-%d_%H-%M-%S");
+        std::string folderName = "../recordings/" + ss.str();
+        if (mkdir(folderName.c_str(), 0777) == 0 || errno == EEXIST) {
+            std::cout << folderName <<" directory created or already exists." << std::endl;
+        } else {
+            std::cerr << "Failed to create "<< folderName<<" directory." << std::endl;
+            return ;
+        }
+
+
 
         for (unsigned int i = 0 ; i < num_devices_; i++)
         {
@@ -615,11 +636,13 @@ private:
             rgba_device_dsts_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true));
 
             // rgba_dp_buf_vec_.push_back((CUdeviceptr)rgba_device_dsts_.back()->data());
+            
+            
 
-          
-            std::string file_name = "Dev_" + map_serial_nums_[i]  + ".mp4" ;
-            // std::cout<<"FileName["<<i<<"]"<<file_name<<std::endl;
-            fp_outs_.push_back(std::ofstream(file_name, std::ios::out | std::ios::binary));
+            std::string file_name = "/Cam_" + map_serial_nums_[i]  + ".mp4" ;
+            std::string file_path = folderName + file_name;
+            std::cout<<"FileName["<<i<<"]: "<<file_path<<std::endl;
+            fp_outs_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
             
             NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[i/sep_cam_num], width_, height_, enc_format_), EncodeDeleteFunc);
         

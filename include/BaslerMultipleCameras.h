@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <map>
 #include <queue>
+#include <portaudio.h>
+
 // #include <cstdlib>
 #include <immintrin.h>
 // #include <cstdint>
@@ -174,12 +176,76 @@ private:
 
     // std::vector<std::unique_ptr<NvEncoderCuda>> pEncs_;
 
+    std::vector<bool> m_bStarters_;
+    std::atomic<bool> m_bStarter_ = false;
+    u_int64_t m_initTimeStamp_;
+    std::chrono::system_clock::time_point m_timePoint_;
+
+
+    struct AudioSample {
+        float leftSample;
+        float rightSample;
+        std::chrono::system_clock::time_point timestamp;    
+    };
+    struct AudioData {
+        std::vector<AudioSample> recordedSamples;
+        bool isRecording;
+        std::chrono::system_clock::time_point startTime;
+        std::chrono::system_clock::time_point initialTimestamp;
+        uint64_t sampleCount;  // Add this line
+    };
+    const static unsigned int  SAMPLE_RATE = 44100;
+    const static unsigned long  FRAMES_PER_BUFFER = 256;
+    const static  int  NUM_CHANNELS = 2;
+
+    // Structure to hold WAV file header
+#pragma pack(push, 1)
+    struct WAVHeader {
+        // RIFF chunk
+        char riffId[4] = {'R', 'I', 'F', 'F'};
+        uint32_t riffSize;
+        char waveId[4] = {'W', 'A', 'V', 'E'};
+        
+        // fmt chunk
+        char fmtId[4] = {'f', 'm', 't', ' '};
+        uint32_t fmtSize = 16;
+        uint16_t audioFormat = 3; // IEEE float
+        uint16_t numChannels = NUM_CHANNELS;
+        uint32_t sampleRate = SAMPLE_RATE;
+        uint32_t byteRate = SAMPLE_RATE * NUM_CHANNELS * sizeof(float);
+        uint16_t blockAlign = NUM_CHANNELS * sizeof(float);
+        uint16_t bitsPerSample = sizeof(float) * 8;
+    };
+
+    struct TimeChunkHeader {
+        char timeId[4] = {'T', 'I', 'M', 'E'};
+        uint32_t timeSize;
+    };
+
+    struct TimestampData {
+        uint64_t sampleIndex;
+        uint64_t timestamp; // microseconds since epoch
+    };
+#pragma pack(pop)
+    
+    
+    AudioData m_soundData_;
+    std::mutex m_soundMutex_;
+    std::condition_variable m_soundCond_;
+    std::thread m_soundThread_;
+
+
   
    
   
  
 public:
     static bool SaveBayerAsTiff(const std::string &file_name, uint8_t *buffer, uint32_t width, u_int32_t height);
+    static int recordCallback(const void *inputBuffer, void *outputBuffer,
+                         unsigned long framesPerBuffer,
+                         const PaStreamCallbackTimeInfo *timeInfo,
+                         PaStreamCallbackFlags statusFlags,
+                         void *userData);
     void EnumDevices();
 
     int OpenDevices();
@@ -189,7 +255,7 @@ public:
     int CloseDevices();
     int StopGrabbing();
     int ConfigureCameraSettings();
-    
+
     int  Save2BufferThenDisk();
     int OpenDevicesInThreads();
     void CloseDevicesInThreads();
@@ -203,6 +269,10 @@ public:
     int ThreadCloseDevicesFun(int );
     // std::vector<ImageBuffer<std::unique_ptr<uint8_t[]> >> & GetQueueVectors() {return m_queueGrabRes;};
     friend class  CBaslerImageEventHandler;
+
+    int StartSoundRecording();
+    int ThreadStartSoundRecording();
+    void saveToWavWithEmbeddedTimestamps(const std::vector<AudioSample> &samples, const char *audioFile);
 
 private:
    

@@ -41,15 +41,18 @@
 // FBS Calculator
 thread_local unsigned count = 0;
 thread_local double last = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();
+thread_local double fps = 0.0;
+thread_local bool starter = false;
 #define FPS_CALC(_WHAT_, ncurrCameraIndex) \
 do \
 { \
     double now = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
     ++count; \
-    if (now - last >= 3.0) \
+    if (now - last >= 2.0) \
     { \
       std::cerr << "\033[1;31m";\
-      std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << double(count)/double(now - last) << " fbs." <<  "\n"; \
+      fps = double(count)/double(now - last) ; \
+      std::cerr << ncurrCameraIndex<< ". Camera,"<<" Average framerate("<< _WHAT_ << "): " << fps << " fps." <<  "\n"; \
       std::cerr << "\033[0m";\
       count = 0; \
       last = now; \
@@ -299,7 +302,6 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
     
    
 {
-
     EnumDevices();
     // const size_t queue_size = 10; // Set the desired size of the queues
     // std::vector<boost::lockfree::queue<int>> queues(queue_size);
@@ -321,6 +323,7 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         m_cProduceConsumeConds_ = condVector(m_uDeviceNum);
         m_uLossRatioVec_.resize(m_uDeviceNum, 0);
         m_uTotalNumImgVec_.resize(m_uDeviceNum, 0);
+        m_bStarters_.resize(m_uDeviceNum, false);
         // cuda_streams_.resize(m_uDeviceNum, nullptr);
         // npp_stream_contextes_.resize(m_uDeviceNum, {});
         // for (int i = 0; i < m_uDeviceNum; i++) {
@@ -399,10 +402,10 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
                 //     break;
                 // std::cout<<"m_bExit:"<<m_bExit<<std::endl;
                   
-                if (m_bExit) {
+                if (m_bExit ) {
                     m_bGrabExitFlag = true;
-                    // m_bGrabExitFlag.store(true, std::memory_order_release);
                     // std::cout<<"m_grab_flag 2:"<<m_bGrabExitFlag<<std::endl;
+                    m_soundCond_.notify_one();
 
                     break; 
                 }
@@ -437,7 +440,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
                 CUDA_DRVAPI_CALL(cuCtxSetCurrent((CUcontext)device));
                 bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
 
-                // converter->CopyImageFromHost2Device(buff_item.image, nCurCameraIndex);
+                // converter->CopyImageFromHost2Device(buff                                                                                             _item.image, nCurCameraIndex);
                 lock.unlock();
                 free(buff_item.image);
                 buff_item.image = NULL;
@@ -631,7 +634,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
     CBaslerUniversalGrabResultPtr ptrGrabResult;
     while(/*!m_bExit.load(std::memory_order_acquire)*/ !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
-        m_uTotalNumImgVec_[nCurCameraIndex]++;
+        if (m_bStarter_.load(std::memory_order_acquire))
+            m_uTotalNumImgVec_[nCurCameraIndex]++;
 
         // std::cout<<"m_grab_flag:"<<m_bGrabExitFlag.load(std::memory_order_acquire)<<std::endl;
         // m_bsCameras[nCurCameraIndex].WaitForFrameTriggerReady(10000, TimeoutHandling_ThrowException);
@@ -646,6 +650,53 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             size_t bufferSize = ptrGrabResult->GetBufferSize();
             u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
             const std::string serialNumber{m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetSerialNumber().c_str()};
+            FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex);
+            if (!m_bStarter_.load(std::memory_order_acquire)) {
+                if ( !m_bStarters_[nCurCameraIndex]) {
+                    if ((fps > m_fAcquisitionFrameRate - 0.5 && fps < m_fAcquisitionFrameRate + 0.5) ) {
+                        m_bStarters_[nCurCameraIndex] = true;
+
+                    }  
+                    else {                    
+                        if (i % 10==0)
+                            std::cerr<<"Cannot start grabbing yet. It is because "<< nCurCameraIndex<< ".Cam fps is not around 30!"<<std::endl;
+                        i++;
+                        continue; 
+                    }
+              
+                } 
+                
+                
+                if ( nCurCameraIndex == 0 ) {
+                    m_bStarter_.store(std::all_of(m_bStarters_.begin(), m_bStarters_.end(), [](bool v) { return v; }), std::memory_order_release);
+                    if (!m_bStarter_.load(std::memory_order_acquire)) {
+                        if (i % 10==0)
+                            std::cerr<<"Cannot started grabbing yet. It is because not all fps's are around 30!"<<std::endl;
+                        i++;
+                        continue;
+                    }
+                    else {
+                        std::cerr<<"******* Grabbing just started! ************\n\n\n\n\n\n\n"<<std::endl;
+                        // m_initTimeStamp_ = timeStamp;
+                        m_soundCond_.notify_one();
+
+                    }
+
+                } else continue;
+            
+
+
+
+            } 
+
+ 
+            
+            
+
+            
+            
+
+
            
            {
         
@@ -673,16 +724,17 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             
 
             }
+           
             m_cProduceConsumeConds_[nCurCameraIndex].notify_one();
             
             // DATA data{tmpSharedptr, timeStamp, bufferSize, serialNumber};
             // m_queueGrabRes[nCurCameraIndex].enqueue(data);
              // if (nCurCameraIndex == 0) 
-            FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex);
         }
         else
         {
-             m_uLossRatioVec_[nCurCameraIndex]++;
+            if (m_bStarter_.load(std::memory_order_acquire))
+                m_uLossRatioVec_[nCurCameraIndex]++;
            
            std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
         }
@@ -698,6 +750,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
    
     } 
+    
+
     
 
     // BayerToH264ConverterNvidiaCodec::exit_flag.store(true);
@@ -927,8 +981,8 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     }
 
 
-
-    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate);   
+    m_timePoint_ = std::chrono::system_clock::now();
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_timePoint_);   
     // converter = std::make_unique<BayerToH264ConverterGST>(m_mapSerials, m_uWidth, m_uHeight);   
     // unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
     // for (size_t i = 0; i < m_uDeviceNum; ++i)
@@ -1087,7 +1141,6 @@ int BaslerMultipleCameras::StartGrabbing()
     // m_tGrabThread.join();
 
     
-
     for (unsigned int i = 0; i < m_uDeviceNum; i++)
     {
 
@@ -1227,6 +1280,48 @@ int BaslerMultipleCameras::StartGrabbing()
    
    return m_nExitCode;
 
+}
+
+int BaslerMultipleCameras::recordCallback(const void *inputBuffer, void *outputBuffer, unsigned long framesPerBuffer, const PaStreamCallbackTimeInfo *timeInfo, PaStreamCallbackFlags statusFlags, void *userData)
+{
+    AudioData *data = (AudioData*)userData;
+    const float *in = (const float*)inputBuffer;
+    
+    // if (data->isRecording) {
+    //     for (unsigned long i = 0; i < framesPerBuffer; i++) {
+    //         AudioSample sample;
+    //         sample.sample = in[i];
+            
+    //         // Calculate timestamp based on initial timestamp and sample count
+    //         auto sampleOffset = std::chrono::microseconds(
+    //             static_cast<long long>(1000000.0 * data->sampleCount / SAMPLE_RATE));
+    //         sample.timestamp = data->initialTimestamp + sampleOffset;
+            
+    //         data->recordedSamples.push_back(sample);
+    //         data->sampleCount++;
+    //     }
+    // }
+    
+    // return paContinue;
+
+    if (data->isRecording) {
+      for (unsigned long i = 0; i < framesPerBuffer; i++) {
+          AudioSample sample;
+          sample.leftSample = in[i * NUM_CHANNELS];     // Left channel
+          sample.rightSample = in[i * NUM_CHANNELS + 1]; // Right channel
+
+          // Calculate timestamp based on initial timestamp and sample count
+          auto sampleOffset = std::chrono::milliseconds(
+              static_cast<long long>(1000000.0 * data->sampleCount / SAMPLE_RATE));
+          sample.timestamp = data->initialTimestamp + sampleOffset;
+
+          data->recordedSamples.push_back(sample);
+          data->sampleCount++;
+      }
+  }
+
+  return paContinue;
+    
 }
 
 // Thread function for Single grab
@@ -1423,7 +1518,8 @@ int BaslerMultipleCameras::StopGrabbing()
     // std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // m_tGrabThread.join();
-
+    
+    m_soundThread_.join();
 
     for (auto &th: m_tGrabThreads)
     {
@@ -1439,7 +1535,7 @@ int BaslerMultipleCameras::StopGrabbing()
           th.join();
         
     }
-   
+
     
    
 
@@ -1475,10 +1571,243 @@ int BaslerMultipleCameras::StopGrabbing()
 
 }
 
+int BaslerMultipleCameras::StartSoundRecording(){
+ m_soundThread_ = std::thread(std::bind(&BaslerMultipleCameras::ThreadStartSoundRecording, this));
+ return 0;
+}
 
-// Software trigger
 
-// GigE Action Command Trigger
+int BaslerMultipleCameras::ThreadStartSoundRecording()
+{
+    
+    
 
+    
+    
+    
+    std::unique_lock<std::mutex> lock(m_soundMutex_);
 
+    // m_soundCond_.wait_for(lock, std::chrono::seconds(5));//==std::cv_status::timeout)
+    // {
+    //     std::cout << '.' << std::endl;
+    // }
+    m_soundCond_.wait(lock, [&] { return !m_bExit && m_bStarter_.load(std::memory_order_acquire) ;});
 
+    // m_initTimeStamp_= 16003456723;
+    // auto time_stamp_t = std::chrono::system_clock::time_point(
+    //     std::chrono::milliseconds(m_initTimeStamp_));
+
+    // auto now =  std::chrono::system_clock::now();
+    // m_initTimeStamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+    std::time_t now_t = std::chrono::system_clock::to_time_t(m_timePoint_);
+    std::stringstream ss;
+        
+    ss << std::put_time(std::localtime(&now_t), "%Y-%m-%d_%H-%M-%S");
+    std::string folderName = "../recordings/" + ss.str();
+    if (mkdir(folderName.c_str(), 0777) == 0 || errno == EEXIST) {
+        std::cout << folderName <<" directory created or already exists." << std::endl;
+    } else {
+        std::cerr << "Failed to create "<< folderName<<" directory." << std::endl;
+        return -1;
+    }
+
+    std::string soundFileName = folderName + "/recorded_audio.wav";
+
+    PaError err = Pa_Initialize();
+    if (err != paNoError) {
+        std::cout << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+        return 1;
+    }
+
+    // AudioData data;
+
+    m_soundData_.isRecording = false;
+    m_soundData_.sampleCount = 0;
+    PaStream *stream;
+    err = Pa_OpenDefaultStream(&stream,
+                             NUM_CHANNELS,
+                             0,
+                             paFloat32,
+                             SAMPLE_RATE,
+                             FRAMES_PER_BUFFER,
+                             recordCallback,
+                             &m_soundData_);
+    
+    if (err != paNoError) {
+        std::cout << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+        return 1;
+    }
+
+    err = Pa_StartStream(stream);
+    if (err != paNoError) {
+        std::cout << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+        return 1;
+    }
+
+    // std::cout << "Waiting for 2 seconds before starting recording..." << std::endl;
+    // std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    // Start recording
+    // uint64_t initialMicros = std::chrono::duration_cast<std::chrono::microseconds>(
+    //     std::chrono::system_clock::now().time_since_epoch()).count();
+    // m_initTimeStamp_ = std::chrono::duration_cast<std::chrono::milliseconds>(m_timePoint_.time_since_epoch()).count();
+    // std::cout << "Starting recording with timestamp: " << initialMicros << std::endl;
+    m_soundData_.initialTimestamp = m_timePoint_;//std::chrono::system_clock::time_point(
+      //  std::chrono::milliseconds(m_initTimeStamp_));
+    m_soundData_.sampleCount = 0;
+    m_soundData_.recordedSamples.clear();
+    m_soundData_.isRecording = true;
+
+    // Record for a fixed duration, e.g., 10 seconds
+    // std::this_thread::sleep_for(std::chrono::seconds(10));
+    m_soundCond_.wait(lock, [] { return m_bExit; });
+    m_soundData_.isRecording = false;
+
+    std::cout << "Recording stopped. Saving files..." << std::endl;
+    saveToWavWithEmbeddedTimestamps(m_soundData_.recordedSamples, soundFileName.c_str());
+    std::cout << "Audio saved to 'recorded_audio.wav'" << std::endl;
+    
+    // std::cout << "\nVerifying saved timestamps:" << std::endl;
+    // readWavTimestamps("recorded_audio.wav");
+
+    err = Pa_StopStream(stream);
+    err = Pa_CloseStream(stream);
+    Pa_Terminate();
+    return 0;
+}
+void BaslerMultipleCameras::saveToWavWithEmbeddedTimestamps(const std::vector<AudioSample>& samples, const char* audioFile) {
+  std::ofstream file(audioFile, std::ios::binary);
+
+  // Prepare timestamp data
+  std::vector<TimestampData> timeData;
+  timeData.reserve(samples.size());
+
+  for (size_t i = 0; i < samples.size(); i++) {
+      TimestampData td;
+      td.sampleIndex = i;
+      td.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
+          samples[i].timestamp.time_since_epoch()).count();
+      timeData.push_back(td);
+  }
+
+  // Calculate sizes
+  uint32_t timeChunkSize = sizeof(TimestampData) * timeData.size();
+  uint32_t dataChunkSize = samples.size() * sizeof(float) * NUM_CHANNELS;
+
+  // Create and write WAV header
+  WAVHeader header;
+  header.riffSize = sizeof(WAVHeader) - 8 +
+                    sizeof(TimeChunkHeader) + timeChunkSize +
+                    8 + dataChunkSize;
+
+  file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+
+  // Write TIME chunk
+  TimeChunkHeader timeHeader;
+  timeHeader.timeSize = timeChunkSize;
+  file.write(reinterpret_cast<const char*>(&timeHeader), sizeof(TimeChunkHeader));
+  file.write(reinterpret_cast<const char*>(timeData.data()), timeChunkSize);
+
+  // Write data chunk header
+  file.write("data", 4);
+  file.write(reinterpret_cast<const char*>(&dataChunkSize), 4);
+
+  // Write audio samples
+  for (const auto& sample : samples) {
+      file.write(reinterpret_cast<const char*>(&sample.leftSample), sizeof(float));
+      file.write(reinterpret_cast<const char*>(&sample.rightSample), sizeof(float));
+  }
+
+  file.close();
+
+  // Save CSV file
+  std::string csvFilename = std::string(audioFile) + ".csv";
+  std::ofstream csv(csvFilename);
+  csv << "Sample Index,Timestamp(microseconds)\n";//,Timestamp (human readable),Left Value,Right Value\n";
+
+  for (size_t i = 0; i < samples.size(); i++) {
+      auto timestamp = std::chrono::system_clock::to_time_t(samples[i].timestamp);
+      auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+          samples[i].timestamp.time_since_epoch()).count();
+
+      std::stringstream ss;
+      ss << std::put_time(std::localtime(&timestamp), "%Y-%m-%d %H:%M:%S");
+    //   std::cout<<ss.str()<<std::endl;
+      csv << i << ","
+          << us << ".\n";
+        //   << ss.str() << "."
+        //   << std::setfill('0') << std::setw(6) << (us % 1000000) << ","
+        //   << samples[i].leftSample << ","
+        //   << samples[i].rightSample << "\n";
+  }
+
+  csv.close();
+}
+
+// void BaslerMultipleCameras::saveToWavWithEmbeddedTimestamps(const std::vector<AudioSample> &samples, const char *audioFile)
+// {
+//     std::ofstream file(audioFile, std::ios::binary);
+    
+//     // Prepare timestamp data
+//     std::vector<TimestampData> timeData;
+//     timeData.reserve(samples.size());
+    
+//     for (size_t i = 0; i < samples.size(); i++) {
+//         TimestampData td;
+//         td.sampleIndex = i;
+//         td.timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
+//             samples[i].timestamp.time_since_epoch()).count();
+//         timeData.push_back(td);
+//     }
+
+//     // Calculate sizes
+//     uint32_t timeChunkSize = sizeof(TimestampData) * timeData.size();
+//     uint32_t dataChunkSize = samples.size() * sizeof(float);
+    
+//     // Create and write WAV header
+//     WAVHeader header;
+//     header.riffSize = sizeof(WAVHeader) - 8 +
+//                       sizeof(TimeChunkHeader) + timeChunkSize +
+//                       8 + dataChunkSize;
+    
+//     file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+    
+//     // Write TIME chunk
+//     TimeChunkHeader timeHeader;
+//     timeHeader.timeSize = timeChunkSize;
+//     file.write(reinterpret_cast<const char*>(&timeHeader), sizeof(TimeChunkHeader));
+//     file.write(reinterpret_cast<const char*>(timeData.data()), timeChunkSize);
+    
+//     // Write data chunk header
+//     file.write("data", 4);
+//     file.write(reinterpret_cast<const char*>(&dataChunkSize), 4);
+    
+//     // Write audio samples
+//     for (const auto& sample : samples) {
+//         file.write(reinterpret_cast<const char*>(&sample.sample), sizeof(float));
+//     }
+    
+//     file.close();
+    
+//     // Save CSV file
+//     std::string csvFilename = std::string(audioFile) + ".csv";
+//     std::ofstream csv(csvFilename);
+//     csv << "Sample Index,Timestamp (microseconds),Timestamp (human readable),Value\n";
+    
+//     for (size_t i = 0; i < samples.size(); i++) {
+//         auto timestamp = std::chrono::system_clock::to_time_t(samples[i].timestamp);
+//         auto us = std::chrono::duration_cast<std::chrono::microseconds>(
+//             samples[i].timestamp.time_since_epoch()).count();
+        
+//         std::stringstream ss;
+//         ss << std::put_time(std::localtime(&timestamp), "%Y-%m-%d %H:%M:%S");
+        
+//         csv << i << ","
+//             << us << ","
+//             << ss.str() << "."
+//             << std::setfill('0') << std::setw(6) << (us % 1000000) << ","
+//             << samples[i].sample << "\n";
+//     }
+    
+//     csv.close();
+// }

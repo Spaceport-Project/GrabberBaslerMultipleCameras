@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
     // {
     //   return -1;
     // }
+
     if (baslerCams->OpenDevicesInThreads() != exit_code) 
     {
       return -1;
@@ -126,14 +127,15 @@ int main(int argc, char *argv[]) {
     {
       return -1;
     }
+    
 
 
-    // if (baslerCams->Save2BufferThenDisk() != exit_code) 
-    // {
-    //   return -1;
-    // }
+    // // if (baslerCams->Save2BufferThenDisk() != exit_code) 
+    // // {
+    // //   return -1;
+    // // }
 
-   
+    baslerCams->StartSoundRecording();
      
     if (baslerCams->StopGrabbing() == -1 )
     {

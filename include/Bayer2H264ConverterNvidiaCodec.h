@@ -37,7 +37,7 @@ class BayerToH264ConverterNvidiaCodec{
 public:
     using NvEncPtr = std::unique_ptr<NvEncoder, std::function<void(NvEncoder*)>>;
 
-    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps);
+    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, const  std::chrono::system_clock::time_point &);
   
     bool close() ;
 
@@ -100,7 +100,7 @@ public:
         std::vector<CUdevice> cuDevices_;
         std::vector<std::ofstream> fp_outs_;
         std::map<int, std::string> &map_serial_nums_;
-
+        const std::chrono::system_clock::time_point &time_point_;
         // std::vector<cudaStream_t> cuda_streams_;
         // std::vector<NppStreamContext> npp_stream_contextes_;
         
