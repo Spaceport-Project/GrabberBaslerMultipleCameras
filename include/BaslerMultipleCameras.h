@@ -132,6 +132,12 @@ private:
     // std::vector<SafeQueue<DATA>>  m_queueGrabRes;
     std::vector<std::queue<DATA>>  m_queueGrabRes;
     std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
+    // std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_resized_;
+    // NppiSize image_size_ ;
+    // NppiRect image_roi_ ;
+    // NppiSize image_size_resized_ ;
+    // NppiRect image_roi_resized_ ;
+
     std::vector<CUcontext> cu_contexts_;
     std::vector<CUdevice> cuDevices_;
 
@@ -158,6 +164,7 @@ private:
     unsigned int m_uHeight ;
     unsigned int m_uFrameNum;
     unsigned int m_uWidth ;
+    float m_iResizeFactor_;
     unsigned int m_uPacketSize;
     unsigned int m_uPacketDelay;
     float m_fExposureTime ;

@@ -108,14 +108,14 @@ ${CMAKE_SOURCE_DIR}/include/Logger.h
 set(GrabBaslerMultiCams mainGrabBaslerMultiCams${CMAKE_BUILD_TYPE})
 cuda_add_executable(${GrabBaslerMultiCams}  ${PROJECT_SOURCES} ${NV_ENC_SOURCES} ${NV_ENC_CUDA_UTILS} )
 set_target_properties(${GrabBaslerMultiCams}  PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-
+message("npp libs:${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY} ${CUDA_nppif_LIBRARY}" )
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_definitions(${GrabBaslerMultiCams}  PUBLIC DEBUG)
 endif()
 target_include_directories(${GrabBaslerMultiCams}  PUBLIC  ${OpenCV_INCLUDE_DIRS}  ${CUDA_INCLUDE_DIRS}  ${PROJECT_INCLUDE_DIRECTORIES} ${GSTREAMER_INCLUDE_DIRS} ${concurrent_queue_include})
 target_link_libraries(${GrabBaslerMultiCams}      
 
-    ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY}  ${OpenCV_LIBS} pylon::pylon  tiff portaudio
+    ${CUDA_CUDA_LIBRARY} ${CMAKE_DL_LIBS} ${NVENCODEAPI_LIB} ${CUVID_LIB}  ${CUDA_nppc_LIBRARY} ${CUDA_nppisu_LIBRARY} ${CUDA_nppicc_LIBRARY} ${CUDA_nppig_LIBRARY} ${OpenCV_LIBS} pylon::pylon  tiff portaudio  
    )
 
 install( TARGETS ${GrabBaslerMultiCams} )

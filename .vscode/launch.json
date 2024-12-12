@@ -33,7 +33,7 @@
         "request": "launch",
         "program": "${workspaceFolder}/build/mainGrabBaslerMultiCamsDebug",
         "args": [
-            "/home/hamit/GrabberBaslerMultipleCameras/CameraSettings.json"
+            "/home/hamit/Softwares/GrabberBaslerMultipleCameras/CameraSettings.json"
         ],
        
         "stopAtEntry": false,

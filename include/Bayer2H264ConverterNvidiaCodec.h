@@ -37,7 +37,7 @@ class BayerToH264ConverterNvidiaCodec{
 public:
     using NvEncPtr = std::unique_ptr<NvEncoder, std::function<void(NvEncoder*)>>;
 
-    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, const  std::chrono::system_clock::time_point &);
+    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, float resize_factor, const  std::chrono::system_clock::time_point &);
   
     bool close() ;
 
@@ -83,6 +83,14 @@ public:
         std::ofstream outputFile;
         // std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
         std::vector<std::unique_ptr<npp::ImageNPP_8u_C4>> rgba_device_dsts_;
+        std::vector<std::unique_ptr<npp::ImageNPP_8u_C4>> rgba_device_dsts_resized_;
+        NppiSize image_size_ ;
+        NppiRect image_roi_ ;
+        NppiSize image_size_resized_ ;
+        NppiRect image_roi_resized_ ;
+        float resize_factor_;
+
+
         NvEncoderInitParam encode_CLI_options_;
         NV_ENC_BUFFER_FORMAT enc_format_ ;//= NV_ENC_BUFFER_FORMAT_ARGB;
         const std::vector<CUcontext> &cu_contexts_;

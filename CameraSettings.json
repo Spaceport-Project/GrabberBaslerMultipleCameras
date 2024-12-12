@@ -1,6 +1,7 @@
 {
     "Height" : 3000,
     "Width" : 4096,
+    "ResizeFactor": 1.0,
     "ExposureAuto" : 0,
     "ExposureTime" : 6000.0,
     "AcquisitionFrameRate" : 30.0,
