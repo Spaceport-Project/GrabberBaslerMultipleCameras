@@ -281,6 +281,9 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex)
 {
         unsigned int i =0;
+        
+        
+        
        
         
         unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
@@ -313,7 +316,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
                 free(buff_item.image);
                 buff_item.image = NULL;
               
-               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
+               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  false, i );
 
 
 
@@ -332,7 +335,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
             free(buff_item.image);
             buff_item.image = NULL;
             if (m_queueGrabRes[nCurCameraIndex].size() == 0) 
-                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  true);
+                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, true);
             else  
                 converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
              

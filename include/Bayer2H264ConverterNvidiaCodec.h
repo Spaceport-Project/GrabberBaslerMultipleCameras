@@ -46,7 +46,7 @@ public:
 
      void InitializeEncoder( NvEncPtr &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
     void InitializeEncoder( std::unique_ptr<NvEncoderOutputInVidMemCuda> &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
-    void  EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>   &bayerDevice, int n_cam_index,  uint64_t timestamp,  bool );
+    void  EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>   &bayerDevice, int n_cam_index,  uint64_t timestamp,  bool = false, unsigned int cnt = 0xFFFFFFFF);
     void  EncodeCudaFromDevice( int n_cam_index, bool flag_exit);
 
     void EncodeCuda(uint8_t * &pHostFrame, int n_cam_index);
@@ -73,6 +73,8 @@ public:
     private:
         const unsigned int width_;
         const unsigned int height_;
+        const unsigned int cnt_limit = 30;
+
 
         unsigned int num_devices_;
         unsigned int frameIndex = 0;
@@ -100,6 +102,8 @@ public:
 
 
         std::vector<NvEncPtr> pEncsCuda_;
+        std::vector<NvEncPtr> pEncsCudaOrg_;
+
         std::vector<std::unique_ptr<NvEncoderOutputInVidMemCuda>>  pEncsVidCuda_;
         // std::vector<std::unique_ptr<NvCUStream>> p_cu_streams_;
         std::vector<CUdeviceptr> bayer_dp_buf_vec_;
@@ -107,6 +111,8 @@ public:
 
         std::vector<CUdevice> cuDevices_;
         std::vector<std::ofstream> fp_outs_;
+        std::vector<std::ofstream> fp_outs_org_;
+
         std::map<int, std::string> &map_serial_nums_;
         const std::chrono::system_clock::time_point &time_point_;
         // std::vector<cudaStream_t> cuda_streams_;

@@ -95,11 +95,11 @@ public:
     using timePoint = std::chrono::system_clock::time_point;
     using byteArrayVector = std::vector<std::shared_ptr<uint8_t[]>> ;
     using condVector = std::vector<std::condition_variable>;
-    // static std::atomic<bool> m_bExit;
+    
+    
     static bool m_bExit;
 
 
-    static WaitObjectEx m_waitObject;
 
 
 	BaslerMultipleCameras(const std::string&);
