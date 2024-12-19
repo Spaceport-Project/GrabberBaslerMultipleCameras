@@ -60,7 +60,6 @@ do \
     } \
 } while(false)
 
-
  
 class CBaslerImageEventHandler : public CImageEventHandler
 {
@@ -235,7 +234,7 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         m_uTotalNumImgVec_.resize(m_uDeviceNum, 0);
         m_bStarters_.resize(m_uDeviceNum, false);
       
-
+        m_Barrier_.initialize(m_uDeviceNum);
         
         ck(cuInit(0));
 
@@ -281,6 +280,9 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
 int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex)
 {
         unsigned int i =0;
+        
+        
+        
        
         
         unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
@@ -312,9 +314,14 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
                 lock.unlock();
                 free(buff_item.image);
                 buff_item.image = NULL;
-              
-               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
+                if (m_iResizeFactor_ != 1.0f && i == m_uFullResCntLimit ) {
+                   converter->initializeResize(nCurCameraIndex);
 
+               } 
+
+              
+               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  false, i );
+               
 
 
                 i++;
@@ -332,7 +339,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
             free(buff_item.image);
             buff_item.image = NULL;
             if (m_queueGrabRes[nCurCameraIndex].size() == 0) 
-                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  true);
+                converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, true);
             else  
                 converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6, false);
              
@@ -444,8 +451,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             
 
            std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
-           if (i%50 == 0 && m_uLossRatioVec_[nCurCameraIndex]/float(m_uTotalNumImgVec_[nCurCameraIndex]) > 0.002)
-                throw std::runtime_error("Exception ! Loss Ratio is less than 0.001. Exiting");
+           if (i%100 == 0 && m_uLossRatioVec_[nCurCameraIndex]/float(m_uTotalNumImgVec_[nCurCameraIndex]) > 0.005)
+                throw std::runtime_error("Exception ! Loss Ratio is less than 0.003. Exiting");
         }
         i++;
 
@@ -519,7 +526,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 24;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 1;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
@@ -661,6 +668,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     m_uHeight = pt.get<unsigned int>("Height");
     m_uWidth = pt.get<unsigned int>("Width");
     m_iResizeFactor_= pt.get<float>("ResizeFactor");
+    m_uFullResCntLimit =  pt.get<int>("FullResCountLimit");
     m_fExposureTime = pt.get<float>("ExposureTime");
     m_fAcquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
     m_fGain = pt.get<float>("Gain");
@@ -693,7 +701,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
 
     m_timePoint_ = std::chrono::system_clock::now();
-    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_iResizeFactor_, m_timePoint_);   
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_iResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
   
 
 

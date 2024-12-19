@@ -37,7 +37,7 @@ class BayerToH264ConverterNvidiaCodec{
 public:
     using NvEncPtr = std::unique_ptr<NvEncoder, std::function<void(NvEncoder*)>>;
 
-    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, float resize_factor, const  std::chrono::system_clock::time_point &);
+    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, float resize_factor, int full_res_cnt_limit, const  std::chrono::system_clock::time_point &);
   
     bool close() ;
 
@@ -46,7 +46,7 @@ public:
 
      void InitializeEncoder( NvEncPtr &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
     void InitializeEncoder( std::unique_ptr<NvEncoderOutputInVidMemCuda> &pEnc, NvEncoderInitParam encodeCLIOptions, NV_ENC_BUFFER_FORMAT eFormat);
-    void  EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>   &bayerDevice, int n_cam_index,  uint64_t timestamp,  bool );
+    void  EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>   &bayerDevice, int n_cam_index,  uint64_t timestamp,  bool = false, unsigned int cnt = 0xFFFFFFFF);
     void  EncodeCudaFromDevice( int n_cam_index, bool flag_exit);
 
     void EncodeCuda(uint8_t * &pHostFrame, int n_cam_index);
@@ -61,18 +61,20 @@ public:
 
     bool writeSingleFrame2MP4(int nCurrCameraIndex);
 
-    
+    // void initializeResize();
+    void initializeResize(int cam_index);
+
+
     static std::atomic<bool> exit_flag;
 
     private:
+        void initializeFullRes();
         void initialize();
-           
-       
 
-    
     private:
         const unsigned int width_;
         const unsigned int height_;
+
 
         unsigned int num_devices_;
         unsigned int frameIndex = 0;
@@ -89,6 +91,7 @@ public:
         NppiSize image_size_resized_ ;
         NppiRect image_roi_resized_ ;
         float resize_factor_;
+        int full_res_cnt_limit_;
 
 
         NvEncoderInitParam encode_CLI_options_;
@@ -100,6 +103,8 @@ public:
 
 
         std::vector<NvEncPtr> pEncsCuda_;
+        std::vector<NvEncPtr> pEncsCudaOrg_;
+
         std::vector<std::unique_ptr<NvEncoderOutputInVidMemCuda>>  pEncsVidCuda_;
         // std::vector<std::unique_ptr<NvCUStream>> p_cu_streams_;
         std::vector<CUdeviceptr> bayer_dp_buf_vec_;
@@ -107,7 +112,9 @@ public:
 
         std::vector<CUdevice> cuDevices_;
         std::vector<std::ofstream> fp_outs_;
-        std::map<int, std::string> &map_serial_nums_;
+        std::vector<std::ofstream> fp_outs_org_;
+
+        std::map<int, std::string> map_serial_nums_;
         const std::chrono::system_clock::time_point &time_point_;
         // std::vector<cudaStream_t> cuda_streams_;
         // std::vector<NppStreamContext> npp_stream_contextes_;
