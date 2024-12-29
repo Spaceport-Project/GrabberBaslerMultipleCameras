@@ -37,7 +37,7 @@ class BayerToH264ConverterNvidiaCodec{
 public:
     using NvEncPtr = std::unique_ptr<NvEncoder, std::function<void(NvEncoder*)>>;
 
-    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, float resize_factor, const  std::chrono::system_clock::time_point &);
+    BayerToH264ConverterNvidiaCodec(const std::vector<CUcontext> &cu_contexts, std::map<int, std::string> map_serial_nums, unsigned int device_num, unsigned int input_width, unsigned int input_height, unsigned int fps, float resize_factor, int full_res_cnt_limit, const  std::chrono::system_clock::time_point &);
   
     bool close() ;
 
@@ -61,19 +61,21 @@ public:
 
     bool writeSingleFrame2MP4(int nCurrCameraIndex);
 
-    
+    // void initializeResize();
+    void initializeResize(int cam_index);
+
+
     static std::atomic<bool> exit_flag;
 
     private:
+        void initializeFullRes();
         void initialize();
-           
-       
 
-    
     private:
         const unsigned int width_;
         const unsigned int height_;
         const unsigned int cnt_limit = 30;
+
 
 
         unsigned int num_devices_;
@@ -91,6 +93,7 @@ public:
         NppiSize image_size_resized_ ;
         NppiRect image_roi_resized_ ;
         float resize_factor_;
+        int full_res_cnt_limit_;
 
 
         NvEncoderInitParam encode_CLI_options_;
@@ -113,7 +116,7 @@ public:
         std::vector<std::ofstream> fp_outs_;
         std::vector<std::ofstream> fp_outs_org_;
 
-        std::map<int, std::string> &map_serial_nums_;
+        std::map<int, std::string> map_serial_nums_;
         const std::chrono::system_clock::time_point &time_point_;
         // std::vector<cudaStream_t> cuda_streams_;
         // std::vector<NppStreamContext> npp_stream_contextes_;

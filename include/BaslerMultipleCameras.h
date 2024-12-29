@@ -83,7 +83,45 @@ struct DATA{
     size_t imageSize=0;
     std::string serialNumber;
 };
-
+class Barrier {
+private:
+    std::mutex mutex;
+    std::condition_variable cv;
+    size_t count;
+    size_t total_count;
+    bool initialized;
+    
+public:
+    // Default constructor
+    Barrier() : count(0), total_count(0), initialized(false) {}
+    
+    // Initialize with number of threads
+    void initialize(size_t num_threads) {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (initialized) {
+            throw std::runtime_error("Barrier already initialized");
+        }
+        count = num_threads;
+        total_count = num_threads;
+        initialized = true;
+    }
+    
+    void wait() {
+        std::unique_lock<std::mutex> lock(mutex);
+        if (!initialized) {
+            throw std::runtime_error("Barrier not initialized");
+        }
+        
+        if (--count == 0) {
+            count = total_count;
+            cv.notify_all();
+        } else {
+            cv.wait(lock, [this] { return count == total_count; });
+        }
+    }
+    
+    
+};
 
 
 class BaslerMultipleCameras 
@@ -108,7 +146,8 @@ public:
 private:
     unsigned int            m_uDeviceNum = 0;
     const std::string&      m_sCameraSettingsFile;
-   
+    int                     m_uFullResCntLimit;
+    Barrier                 m_Barrier_;
    
     threadVector            m_tGrabThreads;
     std::thread                  m_tGrabThread;
