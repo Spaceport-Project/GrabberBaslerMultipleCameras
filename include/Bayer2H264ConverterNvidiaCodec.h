@@ -26,7 +26,6 @@
 #include "NvEncoderOutputInVidMemCuda.h"
 #include "Logger.h"
 
-// #include <ImageIO.h>
 #include <ImagesCPU.h>
 #include <ImagesNPP.h>
 #include <opencv2/highgui.hpp>

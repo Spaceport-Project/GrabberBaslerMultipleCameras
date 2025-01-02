@@ -41,7 +41,8 @@ set(PROJECT_SOURCES
         mainGrabMultiCams.cpp
         src/BaslerMultipleCameras.cpp 
         src/Bayer2H264ConverterNvidiaCodec.cpp
-        src/memcpy_func.cpp  
+        src/memcpy_func.cpp 
+        src/Barrier.cpp
 )
 
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_80,code=\"sm_80,compute_80\")

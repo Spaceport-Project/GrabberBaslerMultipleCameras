@@ -11,12 +11,10 @@
 #include <cstdint>
 #include <exception>
 #include <numeric>
-// #include <Windows.h>
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/bind/bind.hpp>
-// #include <opencv2/opencv.hpp>
 
 #include "BaslerMultipleCameras.h"
 #include "SafeVector.h"
@@ -36,7 +34,6 @@
 #define DEBUG_PRINT(...) do {} while (0)
 #endif
 
-// #define ENSURE(expr) do { if (expr) break; std::printf("Error: %s\n", #expr); std::abort(); } while (false)
 
 // FBS Calculator
 thread_local unsigned count = 0;
@@ -209,7 +206,6 @@ do \
 }while(false)
 
 
-// BaslerMultipleCameras dialog
 BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsFile):
      
       m_tlFactory (CTlFactory::GetInstance())
@@ -234,29 +230,9 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         m_uTotalNumImgVec_.resize(m_uDeviceNum, 0);
         m_bStarters_.resize(m_uDeviceNum, false);
       
-        m_Barrier_.initialize(m_uDeviceNum);
+        // m_Barrier_.initialize(m_uDeviceNum);
         
-        ck(cuInit(0));
-
-        int nGpu = 0;
-		ck(cuDeviceGetCount(&nGpu));
-        // nGpu =1;
-		
-        std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
-        cu_contexts_.resize(nGpu, nullptr);
-        cuDevices_.resize(nGpu, 0);
-        for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
-            ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
-            char szDeviceName[80];
-            ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iGpu]));
-            std::cout << "GPU in use: " << szDeviceName << std::endl;
-            ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
-        }
-
-        
-
-     
-
+       
 
     } 
     else 
@@ -281,58 +257,56 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 {
         unsigned int i =0;
         
-        
-        
-       
-        
         unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
+        int iGpu = 0;
+        
+        if ( m_fResizeFactor_ != 1 ){
+            if (nCurCameraIndex  % sep_cam_num == 0 )
+                iGpu++;
+        }
+        
         while(true) {
               
                   
-                if ( m_bExit ) {
-                    m_bGrabExitFlag = true;
-                    m_soundCond_.notify_one();
-                    break; 
-                }
+            if ( m_bExit ) {
+                m_bGrabExitFlag = true;
+                m_soundCond_.notify_one();
+                break; 
+            }
 
                 
-                std::unique_lock<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
-               
-                m_cProduceConsumeConds_[nCurCameraIndex].wait(lock, [&] {
-                    return !m_queueGrabRes[nCurCameraIndex].empty();
-                });
-               
+            std::unique_lock<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
+            
+            m_cProduceConsumeConds_[nCurCameraIndex].wait(lock, [&] {
+                return !m_queueGrabRes[nCurCameraIndex].empty();
+            });
+            
 
-                DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
-                m_queueGrabRes[nCurCameraIndex].pop();
-               
-                void *device = cu_contexts_[nCurCameraIndex/sep_cam_num];
-                CUDA_DRVAPI_CALL(cuCtxSetCurrent((CUcontext)device));
-                bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
+            DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
+            m_queueGrabRes[nCurCameraIndex].pop();
+            
+            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num + iGpu];
+            ck(cuCtxSetCurrent((CUcontext)device));
+            bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
 
 
-                lock.unlock();
-                free(buff_item.image);
-                buff_item.image = NULL;
-                if (m_iResizeFactor_ != 1.0f && i == m_uFullResCntLimit ) {
-                   converter->initializeResize(nCurCameraIndex);
-
-               } 
+            lock.unlock();
+            free(buff_item.image);
+            buff_item.image = NULL;
+            
 
               
-               converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  false, i );
-               
-
-
-                i++;
+            converter->EncodeCudaFromDevice(bayer_device_srcs_[nCurCameraIndex], nCurCameraIndex, buff_item.timeStamp/1e6,  false, i );
+            
+            i++;
                
          }
         while (m_queueGrabRes[nCurCameraIndex].size() != 0 ) {
 
             DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
             m_queueGrabRes[nCurCameraIndex].pop();
-            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num];
-            CUDA_DRVAPI_CALL(cuCtxSetCurrent((CUcontext)device));
+            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num + iGpu];
+            ck(cuCtxSetCurrent((CUcontext)device));
 
             bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
 
@@ -348,13 +322,6 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
         }
 
 
-
-
-
-
-
-
-        
     
     return 0;
 }
@@ -369,7 +336,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
    
    
     CBaslerUniversalGrabResultPtr ptrGrabResult;
-    while(/*!m_bExit.load(std::memory_order_acquire)*/ !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
+    while( !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
         // if (m_bStarter_.load(std::memory_order_acquire))
             m_uTotalNumImgVec_[nCurCameraIndex]++;
 
@@ -446,7 +413,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
         else
         {
             // if (m_bStarter_.load(std::memory_order_acquire))
-                m_uLossRatioVec_[nCurCameraIndex]++;
+            m_uLossRatioVec_[nCurCameraIndex]++;
             
             
 
@@ -456,11 +423,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
         }
         i++;
 
-
-        
-
-
-         ptrGrabResult.Release();
+        ptrGrabResult.Release();
 
       
 
@@ -599,24 +562,21 @@ int BaslerMultipleCameras::ThreadOpenDevicesFun(int nCurCameraIndex)
            
 
            
-            m_bsCameras[nCurCameraIndex].Attach( m_tlFactory.CreateDevice( m_allDeviceInfos[nCurCameraIndex] ) );
-            // m_bsCameras[nCurCameraIndex].RegisterConfiguration( new CActionTriggerConfiguration( m_iDeviceKey, m_iGroupKey, m_iAllGroupMask ), RegistrationMode_Append, Cleanup_Delete );
+        m_bsCameras[nCurCameraIndex].Attach( m_tlFactory.CreateDevice( m_allDeviceInfos[nCurCameraIndex] ) );
+        // m_bsCameras[nCurCameraIndex].RegisterConfiguration( new CActionTriggerConfiguration( m_iDeviceKey, m_iGroupKey, m_iAllGroupMask ), RegistrationMode_Append, Cleanup_Delete );
 
-            m_bsCameras[nCurCameraIndex].SetCameraContext(nCurCameraIndex );
-            // m_bsCameras[nCurCameraIndex].RegisterImageEventHandler( new CBaslerImageEventHandler(m_queueGrabRes , m_mProduceConsumeMutexes_, m_cProduceConsumeConds_, m_uLossRatioVec_, m_uTotalNumImgVec_/*, bayer_device_srcs_, rgba_device_dsts_, npp_stream_contextes_*/), RegistrationMode_Append, Cleanup_Delete );
-            m_bsCameras[nCurCameraIndex].GrabCameraEvents = true;
+        m_bsCameras[nCurCameraIndex].SetCameraContext(nCurCameraIndex );
+        // m_bsCameras[nCurCameraIndex].RegisterImageEventHandler( new CBaslerImageEventHandler(m_queueGrabRes , m_mProduceConsumeMutexes_, m_cProduceConsumeConds_, m_uLossRatioVec_, m_uTotalNumImgVec_/*, bayer_device_srcs_, rgba_device_dsts_, npp_stream_contextes_*/), RegistrationMode_Append, Cleanup_Delete );
+        m_bsCameras[nCurCameraIndex].GrabCameraEvents = true;
 
-            m_bsCameras[nCurCameraIndex].Open();
-              // Check if the device supports events.
-            if (!m_bsCameras[nCurCameraIndex].EventSelector.IsWritable())
-            {
-                throw RUNTIME_EXCEPTION( "The device doesn't support events." );
-            }
-
-
+        m_bsCameras[nCurCameraIndex].Open();
+            // Check if the device supports events.
+        if (!m_bsCameras[nCurCameraIndex].EventSelector.IsWritable())
+        {
+            throw RUNTIME_EXCEPTION( "The device doesn't support events." );
+        }
 
 
-       
     }  
     catch (const GenericException& e)
     {
@@ -627,27 +587,9 @@ int BaslerMultipleCameras::ThreadOpenDevicesFun(int nCurCameraIndex)
     return m_nExitCode;
    
   
-
-
 }
 
-void BaslerMultipleCameras::CloseDevicesInThreads()
-{
 
-   
-
-}
-
-int BaslerMultipleCameras::ThreadCloseDevicesFun(int nCurCameraIndex)
-{
-
-   
-   
-   
-
-    return 0; 
-
-}
 
 
 
@@ -667,7 +609,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     boost::property_tree::read_json(file, pt);
     m_uHeight = pt.get<unsigned int>("Height");
     m_uWidth = pt.get<unsigned int>("Width");
-    m_iResizeFactor_= pt.get<float>("ResizeFactor");
+    m_fResizeFactor_= pt.get<float>("ResizeFactor");
     m_uFullResCntLimit =  pt.get<int>("FullResCountLimit");
     m_fExposureTime = pt.get<float>("ExposureTime");
     m_fAcquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
@@ -684,16 +626,64 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     file.close();
     unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
 
-    for (unsigned int i = 0 ; i < m_uDeviceNum; i++)
-    {
-        // ck(cuCtxCreate(&cu_contexts_[i], 0, cuDevices_[i/sep_cam_num]));
+    ck(cuInit(0));
+    int nGpu = 0;
+    ck(cuDeviceGetCount(&nGpu));
+    // nGpu =1;
+    
+    std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
+    int nCudaContext; 
+    if (m_fResizeFactor_ != 1.0f ) {
+        nCudaContext = nGpu * 2;
+        cu_contexts_.resize(nCudaContext, nullptr);
+        cuDevices_.resize(nGpu, 0);
+    } else {
+        nCudaContext = nGpu ;
+        cu_contexts_.resize(nCudaContext, nullptr);
+        cuDevices_.resize(nGpu, 0);
 
-        cuCtxPushCurrent(cu_contexts_[i/sep_cam_num]);
+
+    }
+    // for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
+    //     ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
+    //     char szDeviceName[80];
+    //     ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iGpu]));
+    //     std::cout << "GPU in use: " << szDeviceName << std::endl;
+    //     ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
+    // }
+
+    for (int iCudaContext = 0; iCudaContext <nCudaContext; iCudaContext++ ) {
+        ck(cuDeviceGet(&cuDevices_[iCudaContext/nGpu], iCudaContext/nGpu));
+        char szDeviceName[80];
+        if (iCudaContext < 2 || iCudaContext % 2 == 0  ) {
+            ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iCudaContext/nGpu]));
+            std::cout << "GPU in use: " << szDeviceName << std::endl;
+        }
+        ck(cuCtxCreate(&cu_contexts_[iCudaContext], 0, cuDevices_[iCudaContext/nGpu]));
+    }
+
+    for (unsigned int i = 0, iGpu = 0 ; i < m_uDeviceNum; i++)
+    {
+
+        
+        ck(cuCtxSetCurrent(cu_contexts_[ i /sep_cam_num + iGpu]));
+
 
         bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
-        // bayer_device_srcs_resized_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth/2, m_uHeight/2, true));
 
-        cuCtxPopCurrent(nullptr); 
+
+        if (m_fResizeFactor_ != 1 ) {
+            
+            
+
+            if (i + 1 % sep_cam_num == 0 )
+                iGpu++;
+        
+       
+        }
+
+
+
     }
 
    
@@ -701,7 +691,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
 
     m_timePoint_ = std::chrono::system_clock::now();
-    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_iResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_fResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
   
 
 

@@ -257,7 +257,7 @@ void NvEncoderCuda::CopyToDeviceFrame(CUcontext device,
         NVENC_THROW_ERROR("Invalid source memory type for copy", NV_ENC_ERR_INVALID_PARAM);
     }
 
-    CUDA_DRVAPI_CALL(cuCtxPushCurrent(device));
+    // CUDA_DRVAPI_CALL(cuCtxPushCurrent(device));
 
     uint32_t srcPitch = nSrcPitch ? nSrcPitch : NvEncoder::GetWidthInBytes(pixelFormat, width);
     CUDA_MEMCPY2D m = { 0 };
@@ -319,5 +319,5 @@ void NvEncoderCuda::CopyToDeviceFrame(CUcontext device,
             }
         }
     }
-    CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
+    // CUDA_DRVAPI_CALL(cuCtxPopCurrent(NULL));
 }

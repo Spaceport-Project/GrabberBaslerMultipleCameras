@@ -45,7 +45,7 @@
 #include <ImagesNPP.h>
 
 #include "NvEncoderCuda.h"
-
+#include "Barrier.h"
 // #include "memcopy_func.h"
 
 
@@ -53,25 +53,6 @@ using namespace Pylon;
 using namespace GenApi;
 using namespace Basler_UniversalCameraParams;
 
-
-#define FPS_CALC_BUF2(_WHAT_) \
-do \
-{ \
-    static unsigned count_buf = 0;\
-    static unsigned counter = 0; \
-    static double last_buf = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count();\
-    double now_buf = std::chrono::duration<double>(std::chrono::system_clock::now().time_since_epoch()).count(); \
-    ++count_buf; \
-    ++counter; \
-    if (now_buf - last_buf >= 2.0) \
-    { \
-      std::cerr << "\033[1;31m";\
-      std::cerr << "Average framerate("<< _WHAT_ << "): " << double(count_buf)/double(now_buf - last_buf) << " Hz. Queue size: " << " Frame Number: "<<counter <<"\n"; \
-      std::cerr << "\033[0m";\
-      count_buf = 0; \
-      last_buf = now_buf; \
-    } \
-}while(false)
 
 
 struct DATA{
@@ -83,46 +64,6 @@ struct DATA{
     size_t imageSize=0;
     std::string serialNumber;
 };
-class Barrier {
-private:
-    std::mutex mutex;
-    std::condition_variable cv;
-    size_t count;
-    size_t total_count;
-    bool initialized;
-    
-public:
-    // Default constructor
-    Barrier() : count(0), total_count(0), initialized(false) {}
-    
-    // Initialize with number of threads
-    void initialize(size_t num_threads) {
-        std::unique_lock<std::mutex> lock(mutex);
-        if (initialized) {
-            throw std::runtime_error("Barrier already initialized");
-        }
-        count = num_threads;
-        total_count = num_threads;
-        initialized = true;
-    }
-    
-    void wait() {
-        std::unique_lock<std::mutex> lock(mutex);
-        if (!initialized) {
-            throw std::runtime_error("Barrier not initialized");
-        }
-        
-        if (--count == 0) {
-            count = total_count;
-            cv.notify_all();
-        } else {
-            cv.wait(lock, [this] { return count == total_count; });
-        }
-    }
-    
-    
-};
-
 
 class BaslerMultipleCameras 
 {
@@ -147,7 +88,7 @@ private:
     unsigned int            m_uDeviceNum = 0;
     const std::string&      m_sCameraSettingsFile;
     int                     m_uFullResCntLimit;
-    Barrier                 m_Barrier_;
+    // Barrier                 m_Barrier_;
    
     threadVector            m_tGrabThreads;
     std::thread                  m_tGrabThread;
@@ -159,7 +100,6 @@ private:
     condVector              m_cProduceConsumeConds_;
 
     std::unique_ptr<BayerToH264ConverterNvidiaCodec> converter;
-    // std::unique_ptr<BayerToH264ConverterGST> converter;
 
 
     std::mutex              m_mWriteMp4Mutex;
@@ -167,34 +107,19 @@ private:
   
     std::map<int, std::string> m_mapSerials; 
     std::map<int, std::string> m_mapModels; 
-    // std::vector<ImageBuffer<CBaslerUniversalGrabResultPtr> > m_queueGrabRes;
-    // std::vector<SafeQueue<DATA>>  m_queueGrabRes;
+ 
     std::vector<std::queue<DATA>>  m_queueGrabRes;
     std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
-    // std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_resized_;
-    // NppiSize image_size_ ;
-    // NppiRect image_roi_ ;
-    // NppiSize image_size_resized_ ;
-    // NppiRect image_roi_resized_ ;
+    
 
     std::vector<CUcontext> cu_contexts_;
     std::vector<CUdevice> cuDevices_;
 
 
-    // std::vector<moodycamel::ConcurrentQueue<DATA>> m_queueGrabRes;
-    // std::vector<boost::lockfree::queue<DATA, boost::lockfree::capacity<500> >> m_queueGrabRes;
-    // std::vector<tbb::concurrent_queue<DATA>> m_queueGrabRes;
-
-    // ThreadPool m_threadPool;
-    // std::ofstream outfile;
-
-    // std::shared_ptr<Sa<DATA>[]> m_queueGrabRes;
-
     int m_nExitCode = 0;
     CBaslerUniversalInstantCameraArray m_bsCameras;
     IGigETransportLayer* m_pTL = nullptr;
     CTlFactory &m_tlFactory;
-    // CTlFactory m_tlFactoryInst;
     DeviceInfoList_t m_allDeviceInfos;
     std::chrono::system_clock::time_point m_tWakeupTime;
     uint32_t m_iDeviceKey;
@@ -203,24 +128,19 @@ private:
     unsigned int m_uHeight ;
     unsigned int m_uFrameNum;
     unsigned int m_uWidth ;
-    float m_iResizeFactor_;
+    float m_fResizeFactor_;
     unsigned int m_uPacketSize;
     unsigned int m_uPacketDelay;
     float m_fExposureTime ;
     float m_fAcquisitionFrameRate;
     float m_fGain;
-    // std::atomic<bool> m_bGrabExitFlag{false};
     bool m_bGrabExitFlag =false;
     
     std::string m_sPixelFormat;
-    // std::vector<std::unique_ptr< npp::ImageNPP_8u_C1>> bayer_device_srcs_;
-    // std::vector<std::unique_ptr< npp::ImageNPP_8u_C4>> rgba_device_dsts_;
-    // std::vector<cudaStream_t> cuda_streams_;
-    // std::vector<NppStreamContext> npp_stream_contextes_;
+ 
     std::vector<unsigned int> m_uLossRatioVec_;
     std::vector<unsigned int> m_uTotalNumImgVec_;
 
-    // std::vector<std::unique_ptr<NvEncoderCuda>> pEncs_;
 
     std::vector<bool> m_bStarters_;
     std::atomic<bool> m_bStarter_ = false;
@@ -280,11 +200,6 @@ private:
     std::condition_variable m_soundCond_;
     std::thread m_soundThread_;
 
-
-  
-   
-  
- 
 public:
     static bool SaveBayerAsTiff(const std::string &file_name, uint8_t *buffer, uint32_t width, u_int32_t height);
     static int recordCallback(const void *inputBuffer, void *outputBuffer,
@@ -302,18 +217,14 @@ public:
     int StopGrabbing();
     int ConfigureCameraSettings();
 
-    int  Save2BufferThenDisk();
+    int Save2BufferThenDisk();
     int OpenDevicesInThreads();
-    void CloseDevicesInThreads();
     
     
 
     int ThreadConsumeAnWrite2DiskAsMp4Fun(int );
-    // int ThreadMultiGrabFun(int nCurCameraIndex, std::vector<float>  &ratio);
     int ThreadMultiGrabFun(int nCurCameraIndex);
     int ThreadOpenDevicesFun(int);
-    int ThreadCloseDevicesFun(int );
-    // std::vector<ImageBuffer<std::unique_ptr<uint8_t[]> >> & GetQueueVectors() {return m_queueGrabRes;};
     friend class  CBaslerImageEventHandler;
 
     int StartSoundRecording();
@@ -322,7 +233,6 @@ public:
 
 private:
    
-    void Write2H264FromBayer(int numWriteThreads);
 
 
 
