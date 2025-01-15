@@ -103,6 +103,7 @@ private:
 
 
     std::mutex              m_mWriteMp4Mutex;
+    std::mutex   m_fpsMutex;
     std::vector<std::mutex> m_mProduceConsumeMutexes_;
   
     std::map<int, std::string> m_mapSerials; 

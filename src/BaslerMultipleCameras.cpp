@@ -229,8 +229,22 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         m_uLossRatioVec_.resize(m_uDeviceNum, 0);
         m_uTotalNumImgVec_.resize(m_uDeviceNum, 0);
         m_bStarters_.resize(m_uDeviceNum, false);
-      
-        // m_Barrier_.initialize(m_uDeviceNum);
+
+        ck(cuInit(0));
+        int nGpu = 0;
+        ck(cuDeviceGetCount(&nGpu));
+        cu_contexts_.resize(nGpu, nullptr);
+        cuDevices_.resize(nGpu, 0);
+    
+        std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
+     
+        for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
+            ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
+            char szDeviceName[80];
+            ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iGpu]));
+            std::cout << "GPU in use: " << szDeviceName << std::endl;
+            ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
+        }
         
        
 
@@ -260,10 +274,10 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
         unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
         int iGpu = 0;
         
-        if ( m_fResizeFactor_ != 1 ){
-            if (nCurCameraIndex  % sep_cam_num == 0 )
-                iGpu++;
-        }
+        // if ( m_fResizeFactor_ != 1 ){
+        //     if (nCurCameraIndex  % sep_cam_num == 0 )
+        //         iGpu++;
+        // }
         
         while(true) {
               
@@ -332,9 +346,11 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
  
     m_bsCameras[nCurCameraIndex].StartGrabbing(m_uFrameNum, GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
     unsigned int i = 0;
+    unsigned int k = 0;
+
     const int DefaultTimeout_ms = 500000;
-   
-   
+    bool rate_flag = false;
+    float aq_rate = m_fAcquisitionFrameRate;
     CBaslerUniversalGrabResultPtr ptrGrabResult;
     while( !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
         // if (m_bStarter_.load(std::memory_order_acquire))
@@ -344,14 +360,29 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
         intptr_t cameraIndex = ptrGrabResult->GetCameraContext();
         if (ptrGrabResult->GrabSucceeded())
         {
-           
+        //    if (!rate_flag && k > 60  ) {
+        //         m_bsCameras[nCurCameraIndex].StopGrabbing();
+        //         m_bsCameras[nCurCameraIndex].Width.SetValue(m_uWidth);
+        //         m_bsCameras[nCurCameraIndex].Height.SetValue(m_uHeight);
+
+        //         // aq_rate *= 3; 
+        //         // fps=0;
+        //         // m_bsCameras[nCurCameraIndex].BslPeriodicSignalPeriod.SetValue(1/aq_rate  * 1e6);
+        //         // m_bsCameras[nCurCameraIndex].BslPeriodicSignalDelay.SetValue(0); 
+
+        //         m_bsCameras[nCurCameraIndex].StartGrabbing(m_uFrameNum, GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
+        //         rate_flag = true;
+        //    }
            
             uint8_t* pImageBuffer = (uint8_t*) ptrGrabResult->GetBuffer();
             size_t bufferSize = ptrGrabResult->GetBufferSize();
             u_int64_t timeStamp = ptrGrabResult->GetTimeStamp();
             const std::string serialNumber{m_bsCameras[nCurCameraIndex].GetDeviceInfo().GetSerialNumber().c_str()};
             bool is_starting = m_bStarter_.load(std::memory_order_acquire);
-            FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex, is_starting );
+            {
+                 std::lock_guard<std::mutex> lock(m_fpsMutex);
+                FPS_CALC("Grabbing Buffer FPS",  nCurCameraIndex, is_starting );
+            }
             if (!is_starting) {
                 if ( !m_bStarters_[nCurCameraIndex]) {
                     if ((fps > m_fAcquisitionFrameRate - 0.5 && fps < m_fAcquisitionFrameRate + 0.5) ) {
@@ -390,24 +421,28 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             } 
 
            {
-        
 
-                std::lock_guard<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
+
+                
                 // clock_t start = clock();
                 // std::cout<<"buffer size in grab:"<<bufferSize<<std::endl;
-            
-            
-                uint8_t *tmpBuffer =  new uint8_t[bufferSize];// (u_int8_t*)malloc(width* height);
-                std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
                 
-                
-                DATA data{tmpBuffer, timeStamp, bufferSize, serialNumber};
-                m_queueGrabRes[nCurCameraIndex].push(data);
+                // if (k > 150) {
+                    std::lock_guard<std::mutex> lock(m_mProduceConsumeMutexes_[nCurCameraIndex]);
+                    uint8_t *tmpBuffer =  new uint8_t[bufferSize];// (u_int8_t*)malloc(width* height);
+                    std::copy(pImageBuffer, pImageBuffer + bufferSize, tmpBuffer);
+                    
+                    
+                    DATA data{tmpBuffer, timeStamp, bufferSize, serialNumber};
+                    m_queueGrabRes[nCurCameraIndex].push(data);
+                    m_cProduceConsumeConds_[nCurCameraIndex].notify_one(); 
+                // }
 
             
             }
            
-            m_cProduceConsumeConds_[nCurCameraIndex].notify_one();
+           
+            k++;
            
         }
         else
@@ -422,6 +457,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
                 throw std::runtime_error("Exception ! Loss Ratio is less than 0.003. Exiting");
         }
         i++;
+        
 
         ptrGrabResult.Release();
 
@@ -489,7 +525,7 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 1;//m_allDeviceInfos.size() ;
+    m_uDeviceNum = 24;//m_allDeviceInfos.size() ;
     std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
     for (unsigned int i = 0; i < m_uDeviceNum; i++) {
         std::cout<<i<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
@@ -626,42 +662,7 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     file.close();
     unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
 
-    ck(cuInit(0));
-    int nGpu = 0;
-    ck(cuDeviceGetCount(&nGpu));
-    // nGpu =1;
-    
-    std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
-    int nCudaContext; 
-    if (m_fResizeFactor_ != 1.0f ) {
-        nCudaContext = nGpu * 2;
-        cu_contexts_.resize(nCudaContext, nullptr);
-        cuDevices_.resize(nGpu, 0);
-    } else {
-        nCudaContext = nGpu ;
-        cu_contexts_.resize(nCudaContext, nullptr);
-        cuDevices_.resize(nGpu, 0);
-
-
-    }
-    // for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
-    //     ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
-    //     char szDeviceName[80];
-    //     ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iGpu]));
-    //     std::cout << "GPU in use: " << szDeviceName << std::endl;
-    //     ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
-    // }
-
-    for (int iCudaContext = 0; iCudaContext <nCudaContext; iCudaContext++ ) {
-        ck(cuDeviceGet(&cuDevices_[iCudaContext/nGpu], iCudaContext/nGpu));
-        char szDeviceName[80];
-        if (iCudaContext < 2 || iCudaContext % 2 == 0  ) {
-            ck(cuDeviceGetName(szDeviceName, sizeof(szDeviceName), cuDevices_[iCudaContext/nGpu]));
-            std::cout << "GPU in use: " << szDeviceName << std::endl;
-        }
-        ck(cuCtxCreate(&cu_contexts_[iCudaContext], 0, cuDevices_[iCudaContext/nGpu]));
-    }
-
+  
     for (unsigned int i = 0, iGpu = 0 ; i < m_uDeviceNum; i++)
     {
 
@@ -670,20 +671,11 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
 
 
         bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
+  
 
-
-        if (m_fResizeFactor_ != 1 ) {
-            
-            
-
-            if (i + 1 % sep_cam_num == 0 )
-                iGpu++;
+        if (i + 1 % sep_cam_num == 0 )
+            iGpu++;
         
-       
-        }
-
-
-
     }
 
    
@@ -991,7 +983,6 @@ int BaslerMultipleCameras::StopGrabbing()
 
 
     // m_tGrabThread.join();
-    m_soundThread_.join();
 
 
     for (auto &th: m_tGrabThreads)
@@ -1021,7 +1012,8 @@ int BaslerMultipleCameras::StopGrabbing()
     }
     std::cout<<"Total Loss Frame Ratio:"<<tot_loss/m_uDeviceNum<<std::endl;
 
-   
+    m_soundThread_.join();
+
 
     try {
         m_bsCameras.StopGrabbing(); 

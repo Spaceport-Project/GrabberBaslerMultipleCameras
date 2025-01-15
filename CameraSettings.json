@@ -1,11 +1,11 @@
 {
     "Height" : 3000,
     "Width" : 4096,
-    "ResizeFactor": 1.0,
+    "ResizeFactor": 2.0,
     "FullResCountLimit" : 60,
     "ExposureAuto" : 0,
     "ExposureTime" : 10000.0,
-    "AcquisitionFrameRate" : 20,
+    "AcquisitionFrameRate" : 30,
     "Gain" : 7.0,
     "PacketSize": 1500,
     "PacketDelay": 1024,
