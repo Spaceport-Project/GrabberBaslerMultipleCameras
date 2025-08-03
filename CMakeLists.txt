@@ -55,7 +55,9 @@ set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_80,code=\"sm_80,com
 find_library(CUVID_LIB nvcuvid)
 find_library(NVENCODEAPI_LIB nvidia-encode)
 list(APPEND CUDA_NVCC_FLAGS "-std=c++17")
-find_package(pylon 7.5.0 REQUIRED)
+find_package(pylon REQUIRED)
+message("pylon ${pylon}")
+
 
 # Boost 
 find_package(OpenCV  REQUIRED)
@@ -65,12 +67,16 @@ find_package(CUDA REQUIRED)
 
 
 
-# add_executable( mainGrabUsingPTP mainGrabUsingPTP.cpp)
-# target_link_libraries( mainGrabUsingPTP PRIVATE pylon::pylon )
-# install( TARGETS mainGrabUsingPTP )
+add_executable( mainSetCamParams mainSetCamParams.cpp)
+target_include_directories( mainSetCamParams PUBLIC    ${PROJECT_INCLUDE_DIRECTORIES} )
+target_link_libraries( mainSetCamParams PRIVATE pylon::pylon )
+install( TARGETS mainSetCamParams )
 
 
-
+add_executable( mainPrintDeviceNums mainPrintDeviceNums.cpp)
+target_include_directories( mainPrintDeviceNums PUBLIC    ${PROJECT_INCLUDE_DIRECTORIES} )
+target_link_libraries( mainPrintDeviceNums PRIVATE pylon::pylon )
+install( TARGETS mainPrintDeviceNums )
 
 
 

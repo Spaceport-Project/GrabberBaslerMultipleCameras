@@ -116,18 +116,17 @@ int main(int argc, char *argv[]) {
       return -1;
     }
 
-    if (baslerCams->ConfigureCameraSettingsinThreads() != exit_code) 
+    if (baslerCams->ConfigureCameraSettings() != exit_code) 
     {
       return -1;
     }
    
  
 
-
-    if (baslerCams->StartGrabbing() != exit_code) 
-    {
-      return -1;
-    }
+    // if (baslerCams->StartGrabbing() != exit_code) 
+    // {
+    //   return -1;
+    // }
     
 
 
@@ -138,10 +137,10 @@ int main(int argc, char *argv[]) {
 
     // baslerCams->StartSoundRecording();
      
-    if (baslerCams->StopGrabbing() == -1 )
-    {
-        return -1;
-    } 
+    // if (baslerCams->StopGrabbing() == -1 )
+    // {
+    //     return -1;
+    // } 
     
 
     delete baslerCams;

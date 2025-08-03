@@ -216,6 +216,9 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
     
    
 {
+    if (!ReadCameraSettingsJson())
+        throw std::runtime_error("Could not open CameraSettings json file");
+        
     EnumDevices();
   
     if (m_uDeviceNum > 0)
@@ -233,10 +236,11 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
         ck(cuInit(0));
         int nGpu = 0;
         ck(cuDeviceGetCount(&nGpu));
+        // nGpu--;
         cu_contexts_.resize(nGpu, nullptr);
         cuDevices_.resize(nGpu, 0);
     
-        std::cout<<"Number of GPUs:"<<nGpu<<std::endl;
+        std::cout<<"\nNumber of GPUs:"<<nGpu<<std::endl;
      
         for (int iGpu = 0; iGpu <nGpu; iGpu++ ) {
             ck(cuDeviceGet(&cuDevices_[iGpu], iGpu));
@@ -245,7 +249,10 @@ BaslerMultipleCameras::BaslerMultipleCameras( const std::string& cameraSettingsF
             std::cout << "GPU in use: " << szDeviceName << std::endl;
             ck(cuCtxCreate(&cu_contexts_[iGpu], 0, cuDevices_[iGpu]));
         }
-        
+
+
+        // for (int i = 0; i < m_uDeviceNum ; i++)
+        //     bayer_device_srcs_.push_back( nullptr);
        
 
     } 
@@ -271,20 +278,16 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 {
         unsigned int i =0;
         
-        unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
-        int iGpu = 0;
+        unsigned int sep_cam_num =  std::ceil(float(m_uDeviceNum)/cu_contexts_.size()) ;//std::ceil(m_uDeviceNum*18.0/24);
         
-        // if ( m_fResizeFactor_ != 1 ){
-        //     if (nCurCameraIndex  % sep_cam_num == 0 )
-        //         iGpu++;
-        // }
+      
         
         while(true) {
               
                   
             if ( m_bExit ) {
                 m_bGrabExitFlag = true;
-                m_soundCond_.notify_one();
+                // m_soundCond_.notify_one();
                 break; 
             }
 
@@ -299,7 +302,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
             DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
             m_queueGrabRes[nCurCameraIndex].pop();
             
-            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num + iGpu];
+            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num ];
             ck(cuCtxSetCurrent((CUcontext)device));
             bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
 
@@ -319,7 +322,7 @@ int BaslerMultipleCameras::ThreadConsumeAnWrite2DiskAsMp4Fun(int nCurCameraIndex
 
             DATA buff_item = m_queueGrabRes[nCurCameraIndex].front();
             m_queueGrabRes[nCurCameraIndex].pop();
-            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num + iGpu];
+            void *device = cu_contexts_[nCurCameraIndex/sep_cam_num ];
             ck(cuCtxSetCurrent((CUcontext)device));
 
             bayer_device_srcs_[nCurCameraIndex]->copyFrom(buff_item.image, bayer_device_srcs_[nCurCameraIndex]->pitch());
@@ -353,7 +356,7 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
     float aq_rate = m_fAcquisitionFrameRate;
     CBaslerUniversalGrabResultPtr ptrGrabResult;
     while( !m_bExit && m_bsCameras[nCurCameraIndex].IsGrabbing() )    {
-        // if (m_bStarter_.load(std::memory_order_acquire))
+        if (m_bStarter_.load(std::memory_order_acquire))
             m_uTotalNumImgVec_[nCurCameraIndex]++;
 
         m_bsCameras[nCurCameraIndex].RetrieveResult( DefaultTimeout_ms, ptrGrabResult, TimeoutHandling_ThrowException );
@@ -385,13 +388,16 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
             }
             if (!is_starting) {
                 if ( !m_bStarters_[nCurCameraIndex]) {
-                    if ((fps > m_fAcquisitionFrameRate - 0.5 && fps < m_fAcquisitionFrameRate + 0.5) ) {
+                    if ((fps > m_fAcquisitionFrameRate - 2 && fps < m_fAcquisitionFrameRate + 2) ) {
                         m_bStarters_[nCurCameraIndex] = true;
 
                     }  
                     else {                    
                         if (i % 50==0)
-                            std::cerr<<"Cannot start grabbing yet. It is because "<< nCurCameraIndex<< ".Cam fps is not around 30!"<<std::endl;
+                        {
+                            std::lock_guard<std::mutex> lock(m_fpsMutex);
+                            std::cerr<<"Cannot start grabbing yet. It is because "<< nCurCameraIndex<< ".Cam fps is not around "<<m_fAcquisitionFrameRate<<" within 2 fps!"<<std::endl;
+                        }
                         i++;
                         continue; 
                     }
@@ -402,14 +408,13 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
                 if ( nCurCameraIndex == 0 ) {
                     m_bStarter_.store(std::all_of(m_bStarters_.begin(), m_bStarters_.end(), [](bool v) { return v; }), std::memory_order_release);
                     if (!m_bStarter_.load(std::memory_order_acquire)) {
-                        // if (i % 10==0)
-                        //     std::cerr<<"Cannot start grabbing yet. It is because not all fps's are around 30!"<<std::endl;
-                        // i++;
+                        
                         continue;
                     }
                     else {
-                        std::cerr<<"******* Grabbing just started! ************\n\n\n\n\n\n\n"<<std::endl;
-                        m_soundCond_.notify_one();
+                        std::cerr<<"\n\n\n\n";
+                        std::cerr<<"******* Grabbing just started! ************\n\n\n\n";
+                        // m_soundCond_.notify_one();
 
                     }
 
@@ -440,6 +445,8 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
 
             
             }
+            // if (k > 30)
+            //     m_bExit = true;
            
            
             k++;
@@ -447,14 +454,17 @@ int BaslerMultipleCameras::ThreadMultiGrabFun(int nCurCameraIndex)
         }
         else
         {
-            // if (m_bStarter_.load(std::memory_order_acquire))
-            m_uLossRatioVec_[nCurCameraIndex]++;
+            if (m_bStarter_.load(std::memory_order_acquire))
+                m_uLossRatioVec_[nCurCameraIndex]++;
             
             
-
-           std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
-           if (i%100 == 0 && m_uLossRatioVec_[nCurCameraIndex]/float(m_uTotalNumImgVec_[nCurCameraIndex]) > 0.005)
-                throw std::runtime_error("Exception ! Loss Ratio is less than 0.003. Exiting");
+            if (i % 10 == 0)
+                std::cout << "Error: " << std::hex << ptrGrabResult->GetErrorCode() << std::dec << std::endl;//" " << ptrGrabResult->GetErrorDescription() << std::endl;
+            if ((i+1)  % 500 == 0 && m_uLossRatioVec_[nCurCameraIndex]/float(m_uTotalNumImgVec_[nCurCameraIndex]) > m_frameLossRation) {
+                std::stringstream tmp;
+                tmp <<"Exception! Frame Loss Ratio is less than "<<m_frameLossRation<<". Exiting";
+                throw std::runtime_error(tmp.str());
+           }
         }
         i++;
         
@@ -525,13 +535,34 @@ void BaslerMultipleCameras::EnumDevices()
 
         std::cerr<<e.GetDescription()<<std::endl;
     }
-    m_uDeviceNum = 24;//m_allDeviceInfos.size() ;
-    std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
-    for (unsigned int i = 0; i < m_uDeviceNum; i++) {
-        std::cout<<i<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
-        m_mapSerials.insert(std::make_pair(i , m_allDeviceInfos[i].GetSerialNumber().c_str()));
+    m_uDeviceNum = m_allDeviceInfos.size() ;
+    try
+    {
+
+        if (m_uNumCams > m_uDeviceNum )
+        {
+            throw RUNTIME_EXCEPTION( "# of devices available is less than that in the config file!" );
+            
+        }
+        else 
+        m_uDeviceNum = m_uNumCams;
+        
+        std::cout<<m_uDeviceNum<<" GigE Cameras Found!"<<std::endl;
+        for (unsigned int i = 0; i < m_uDeviceNum; i++) {
+            std::cout<<i+1<<".Cam Serial Num:"<<m_allDeviceInfos[i].GetSerialNumber().c_str()<<std::endl;
+            m_mapSerials.insert(std::make_pair(i , m_allDeviceInfos[i].GetSerialNumber().c_str()));
  
-    } 
+        }  
+
+    }
+    catch (const GenericException& e){
+         PYLON_UNUSED( e );
+
+        std::cerr<<e.GetDescription()<<" Exiting!"<<std::endl;
+        std::exit(EXIT_FAILURE);
+
+    }
+   
 
     
 
@@ -601,12 +632,18 @@ int BaslerMultipleCameras::ThreadOpenDevicesFun(int nCurCameraIndex)
         m_bsCameras[nCurCameraIndex].Attach( m_tlFactory.CreateDevice( m_allDeviceInfos[nCurCameraIndex] ) );
         // m_bsCameras[nCurCameraIndex].RegisterConfiguration( new CActionTriggerConfiguration( m_iDeviceKey, m_iGroupKey, m_iAllGroupMask ), RegistrationMode_Append, Cleanup_Delete );
 
-        m_bsCameras[nCurCameraIndex].SetCameraContext(nCurCameraIndex );
         // m_bsCameras[nCurCameraIndex].RegisterImageEventHandler( new CBaslerImageEventHandler(m_queueGrabRes , m_mProduceConsumeMutexes_, m_cProduceConsumeConds_, m_uLossRatioVec_, m_uTotalNumImgVec_/*, bayer_device_srcs_, rgba_device_dsts_, npp_stream_contextes_*/), RegistrationMode_Append, Cleanup_Delete );
         m_bsCameras[nCurCameraIndex].GrabCameraEvents = true;
+        // m_bsCameras[nCurCameraIndex].ClearBufferModeEnable = true;
+        m_bsCameras[nCurCameraIndex].SetCameraContext(nCurCameraIndex );
 
+        // std::cout<<m_bsCameras[nCurCameraIndex].MaxNumBuffer.GetValue()<<" "<<m_bsCameras[nCurCameraIndex].MaxNumGrabResults.GetValue()<<" "<<m_bsCameras[nCurCameraIndex].MaxNumQueuedBuffer.GetValue()<<std::endl;
+        m_bsCameras[nCurCameraIndex].MaxNumBuffer.SetValue(7);
         m_bsCameras[nCurCameraIndex].Open();
-            // Check if the device supports events.
+
+        // std::cout<<nCurCameraIndex+1<<".Cam has opened!"<<std::endl;
+
+        // Check if the device supports events.
         if (!m_bsCameras[nCurCameraIndex].EventSelector.IsWritable())
         {
             throw RUNTIME_EXCEPTION( "The device doesn't support events." );
@@ -626,11 +663,8 @@ int BaslerMultipleCameras::ThreadOpenDevicesFun(int nCurCameraIndex)
 }
 
 
+bool BaslerMultipleCameras::ReadCameraSettingsJson(){
 
-
-
-int BaslerMultipleCameras::ConfigureCameraSettings()
-{
     boost::property_tree::ptree pt;
 
     // Read the JSON file
@@ -638,11 +672,10 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     if (!file.good()) 
     {
         printf("Error in opening 'CameraSettings.json' file! Exiting... \n");
-        m_nExitCode = 1;
-        return m_nExitCode;
+        return false;
     }
-
     boost::property_tree::read_json(file, pt);
+    m_uNumCams =  pt.get<unsigned int>("NumCams");
     m_uHeight = pt.get<unsigned int>("Height");
     m_uWidth = pt.get<unsigned int>("Width");
     m_fResizeFactor_= pt.get<float>("ResizeFactor");
@@ -653,43 +686,108 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
     m_uFrameNum = pt.get<unsigned int>("FrameNum");
     m_sPixelFormat = pt.get<std::string>("PixelFormat");
     m_uPacketSize =  pt.get<unsigned int>("PacketSize");
-    m_uPacketDelay = pt.get<unsigned int>("PacketDelay");
-    
-    auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(m_sPixelFormat);
+    m_uTransDelay = pt.get<unsigned int>("TransDelay");
+    m_uInterPacketDelay = pt.get<unsigned int>("IntPacketDelay");
   
 
     
     file.close();
-    unsigned int sep_cam_num =  std::ceil(m_uDeviceNum*19.0/24);
+    return true;
+}
 
-  
-    for (unsigned int i = 0, iGpu = 0 ; i < m_uDeviceNum; i++)
-    {
+void BaslerMultipleCameras::ThreadConfigureCamSettings(int camId) {
+
+    try {
+        m_bsCameras[camId].UserSetSelector.SetValue("Default");
+        m_bsCameras[camId].UserSetLoad.Execute();
+
+      
+      
+        m_bsCameras[camId].PixelFormat.SetValue(m_pixelFormat);
+        
+
+       
+        while (m_bsCameras[camId].GevSCPSPacketSize.GetValue()!= m_uPacketSize) {
+            m_bsCameras[camId].GevSCPSPacketSize.SetValue(m_uPacketSize);
+        }
+        m_bsCameras[camId].GevSCPD.SetValue(m_uTransDelay);
+        m_bsCameras[camId].GevSCFTD.SetValue(m_uInterPacketDelay);
+        m_bsCameras[camId].BandwidthReserveMode.SetValue(BandwidthReserveMode_Performance);
+        // BandwidthReserveModeEnums e = m_bsCameras[camId].BandwidthReserveMode.GetValue();
+        // std::cout<<"e:"<<e<<std::endl;
+        m_bsCameras[camId].Width.SetValue(m_uWidth);
+        if (m_uWidth == 3500) m_bsCameras[camId].OffsetX.SetValue(296);
+
+        m_bsCameras[camId].Height.SetValue(m_uHeight);
+        m_bsCameras[camId].ExposureTime.SetValue(m_fExposureTime);
+        m_bsCameras[camId].GainSelector.SetValue(GainSelector_All);
+        // if (camId > 23) m_bsCameras[camId].Gain.SetValue(m_fGain+3);
+        // else m_bsCameras[camId].Gain.SetValue(m_fGain);
+
+
+     
+        
+        // cout<<"ptp clock:"<<m_bsCameras[camId].BslPeriodicSignalSource.GetValue()<<endl;
+        // m_bsCameras[camId].PtpEnable.SetValue(false);
+        // if (camId == 0)
+        //     m_bsCameras[camId].BslPtpPriority1.SetValue(0);
+        // else 
+        //     m_bsCameras[camId].BslPtpPriority1.SetValue(255);
+        // // Enable end-to-end delay measurement
+        // m_bsCameras[camId].BslPtpProfile.SetValue(BslPtpProfile_DelayRequestResponseDefaultProfile);
+        // // Set the network mode to unicast
+        // m_bsCameras[camId].BslPtpNetworkMode.SetValue(BslPtpNetworkMode_Multicast);
+        // m_bsCameras[camId].BslPtpManagementEnable.SetValue(true);
+        // m_bsCameras[camId].PtpEnable.SetValue(false);
+        // // Disable two-step operation
+        // m_bsCameras[camId].BslPtpTwoStep.SetValue(false);
+        // std::cout<<"PTP enabled:"<<m_bsCameras[camId].PtpEnable.GetValue()<<std::endl;
+        
+        m_bsCameras[camId].PtpEnable.SetValue(true);
+
+       
+
+       
+        m_bsCameras[camId].BslPeriodicSignalPeriod.SetValue(1/m_fAcquisitionFrameRate  * 1e6);
+        m_bsCameras[camId].BslPeriodicSignalDelay.SetValue(0);
+        m_bsCameras[camId].TriggerSelector.SetValue(TriggerSelector_FrameStart);
+        m_bsCameras[camId].TriggerMode.SetValue(TriggerMode_On);
+        m_bsCameras[camId].TriggerSource.SetValue(TriggerSource_PeriodicSignal1);
+        if (m_bsCameras[camId].BslPeriodicSignalSource.GetValue() != BslPeriodicSignalSource_PtpClock ){
+           printf("Clock source of periodic signal is not `PtpClock`\n");
+           return ;
+        }
+        std::cout<<camId+1<<".cam configured!"<<std::endl;
 
         
-        ck(cuCtxSetCurrent(cu_contexts_[ i /sep_cam_num + iGpu]));
-
-
-        bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
-  
-
-        if (i + 1 % sep_cam_num == 0 )
-            iGpu++;
         
+    
+    
+
+    
     }
 
+    
+    catch (const GenericException& e)
+    {
+        // Error handling
+        std::cerr << "An exception occurred." << std::endl
+            << e.GetDescription() << std::endl;
+        m_nExitCode = 1;
+    }
+
+
+}
+
+
+int BaslerMultipleCameras::ConfigureCameraSettings()
+{
    
-
-
-
-    m_timePoint_ = std::chrono::system_clock::now();
-    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_fResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
-  
-
-
-
+    auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(m_sPixelFormat);
+   
     try
     {
+
         for (size_t i = 0; i < m_uDeviceNum; ++i)
         {
             
@@ -707,30 +805,40 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
             while (m_bsCameras[i].GevSCPSPacketSize.GetValue()!= m_uPacketSize) {
 				m_bsCameras[i].GevSCPSPacketSize.SetValue(m_uPacketSize);
 			}
-            m_bsCameras[i].GevSCPD.SetValue(m_uPacketDelay);
+            m_bsCameras[i].GevSCPD.SetValue(m_uTransDelay);
+            m_bsCameras[i].GevSCFTD.SetValue(m_uInterPacketDelay);
+            m_bsCameras[i].BandwidthReserveMode.SetValue(BandwidthReserveMode_Performance);
+            // BandwidthReserveModeEnums e = m_bsCameras[i].BandwidthReserveMode.GetValue();
+            // std::cout<<"e:"<<e<<std::endl;
             m_bsCameras[i].Width.SetValue(m_uWidth);
 			m_bsCameras[i].Height.SetValue(m_uHeight);
             m_bsCameras[i].ExposureTime.SetValue(m_fExposureTime);
             m_bsCameras[i].GainSelector.SetValue(GainSelector_All);
             m_bsCameras[i].Gain.SetValue(m_fGain);
 
+
          
             
-            // // cout<<"ptp clock:"<<m_bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
+            // cout<<"ptp clock:"<<m_bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
             // m_bsCameras[i].PtpEnable.SetValue(false);
-            // m_bsCameras[i].BslPtpPriority1.SetValue(128);
+            // if (i == 0)
+            //     m_bsCameras[i].BslPtpPriority1.SetValue(0);
+            // else 
+            //     m_bsCameras[i].BslPtpPriority1.SetValue(255);
             // // Enable end-to-end delay measurement
             // m_bsCameras[i].BslPtpProfile.SetValue(BslPtpProfile_DelayRequestResponseDefaultProfile);
             // // Set the network mode to unicast
             // m_bsCameras[i].BslPtpNetworkMode.SetValue(BslPtpNetworkMode_Multicast);
             // m_bsCameras[i].BslPtpManagementEnable.SetValue(true);
+            // m_bsCameras[i].PtpEnable.SetValue(false);
             // // Disable two-step operation
             // m_bsCameras[i].BslPtpTwoStep.SetValue(false);
+            // std::cout<<"PTP enabled:"<<m_bsCameras[i].PtpEnable.GetValue()<<std::endl;
+            
             m_bsCameras[i].PtpEnable.SetValue(true);
 
            
 
-            // std::cout<<i<<".cam IEEE1588 status:"<<m_bsCameras[i].PtpStatus.GetValue()<< " "<< m_bsCameras[i].TriggerSource.GetValue()<<std::endl;
            
             m_bsCameras[i].BslPeriodicSignalPeriod.SetValue(1/m_fAcquisitionFrameRate  * 1e6);
             m_bsCameras[i].BslPeriodicSignalDelay.SetValue(0);
@@ -741,8 +849,13 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
                printf("Clock source of periodic signal is not `PtpClock`\n");
                return 0;
             }
+            std::cout<<i+1<<".cam configured!"<<std::endl;
+
 
         }
+        
+
+        
 
 
     }  
@@ -753,6 +866,77 @@ int BaslerMultipleCameras::ConfigureCameraSettings()
             << e.GetDescription() << std::endl;
         m_nExitCode = 1;
     }
+
+
+    unsigned int sep_cam_num = std::ceil(float(m_uDeviceNum)/cu_contexts_.size()); //std::ceil(m_uDeviceNum*18.0/24);
+
+    for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    {
+
+        
+        ck(cuCtxSetCurrent(cu_contexts_[ i /sep_cam_num ]));
+
+        bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
+  
+    }
+
+    m_timePoint_ = std::chrono::system_clock::now();
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_fResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
+  
+
+
+    
+    return m_nExitCode;
+    
+   
+}
+
+
+int BaslerMultipleCameras::ConfigureCameraSettingsinThreads()
+{
+   
+    auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(m_sPixelFormat);
+    if (pixelFormatEnum.has_value())
+        m_pixelFormat =  pixelFormatEnum.value();
+    else 
+        std::cerr << "Pixel Format not set! Continueing with the default or previous value." << std::endl;
+
+    // ThreadConfigureCamSettings(0);
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    {
+    
+        configure_cam_threads.emplace_back(std::thread(std::bind(&BaslerMultipleCameras::ThreadConfigureCamSettings, this, i)));
+    
+    }
+
+    
+    for (auto &th: configure_cam_threads)
+    {
+        if (th.joinable())
+            th.join();
+    
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    unsigned int sep_cam_num = std::ceil(float(m_uDeviceNum)/cu_contexts_.size()); //std::ceil(m_uDeviceNum*18.0/24);
+
+    for (unsigned int i = 0; i < m_uDeviceNum; i++)
+    {
+
+        
+        ck(cuCtxSetCurrent(cu_contexts_[ i /sep_cam_num ]));
+
+        bayer_device_srcs_.push_back( std::make_unique<npp::ImageNPP_8u_C1>(m_uWidth, m_uHeight, true));
+  
+    }
+  
+    m_timePoint_ = std::chrono::system_clock::now();
+    converter = std::make_unique<BayerToH264ConverterNvidiaCodec>(cu_contexts_,  m_mapSerials, m_uDeviceNum, m_uWidth, m_uHeight, (unsigned int)m_fAcquisitionFrameRate, m_fResizeFactor_, m_uFullResCntLimit, m_timePoint_);   
+  
+
 
     
     return m_nExitCode;
@@ -1012,7 +1196,7 @@ int BaslerMultipleCameras::StopGrabbing()
     }
     std::cout<<"Total Loss Frame Ratio:"<<tot_loss/m_uDeviceNum<<std::endl;
 
-    m_soundThread_.join();
+    // m_soundThread_.join();
 
 
     try {
@@ -1201,70 +1385,3 @@ void BaslerMultipleCameras::saveToWavWithEmbeddedTimestamps(const std::vector<Au
   csv.close();
 }
 
-// void BaslerMultipleCameras::saveToWavWithEmbeddedTimestamps(const std::vector<AudioSample> &samples, const char *audioFile)
-// {
-//     std::ofstream file(audioFile, std::ios::binary);
-    
-//     // Prepare timestamp data
-//     std::vector<TimestampData> timeData;
-//     timeData.reserve(samples.size());
-    
-//     for (size_t i = 0; i < samples.size(); i++) {
-//         TimestampData td;
-//         td.sampleIndex = i;
-//         td.timestamp = std::chrono::duration_cast<std::chrono::microseconds>(
-//             samples[i].timestamp.time_since_epoch()).count();
-//         timeData.push_back(td);
-//     }
-
-//     // Calculate sizes
-//     uint32_t timeChunkSize = sizeof(TimestampData) * timeData.size();
-//     uint32_t dataChunkSize = samples.size() * sizeof(float);
-    
-//     // Create and write WAV header
-//     WAVHeader header;
-//     header.riffSize = sizeof(WAVHeader) - 8 +
-//                       sizeof(TimeChunkHeader) + timeChunkSize +
-//                       8 + dataChunkSize;
-    
-//     file.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
-    
-//     // Write TIME chunk
-//     TimeChunkHeader timeHeader;
-//     timeHeader.timeSize = timeChunkSize;
-//     file.write(reinterpret_cast<const char*>(&timeHeader), sizeof(TimeChunkHeader));
-//     file.write(reinterpret_cast<const char*>(timeData.data()), timeChunkSize);
-    
-//     // Write data chunk header
-//     file.write("data", 4);
-//     file.write(reinterpret_cast<const char*>(&dataChunkSize), 4);
-    
-//     // Write audio samples
-//     for (const auto& sample : samples) {
-//         file.write(reinterpret_cast<const char*>(&sample.sample), sizeof(float));
-//     }
-    
-//     file.close();
-    
-//     // Save CSV file
-//     std::string csvFilename = std::string(audioFile) + ".csv";
-//     std::ofstream csv(csvFilename);
-//     csv << "Sample Index,Timestamp (microseconds),Timestamp (human readable),Value\n";
-    
-//     for (size_t i = 0; i < samples.size(); i++) {
-//         auto timestamp = std::chrono::system_clock::to_time_t(samples[i].timestamp);
-//         auto us = std::chrono::duration_cast<std::chrono::microseconds>(
-//             samples[i].timestamp.time_since_epoch()).count();
-        
-//         std::stringstream ss;
-//         ss << std::put_time(std::localtime(&timestamp), "%Y-%m-%d %H:%M:%S");
-        
-//         csv << i << ","
-//             << us << ","
-//             << ss.str() << "."
-//             << std::setfill('0') << std::setw(6) << (us % 1000000) << ","
-//             << samples[i].sample << "\n";
-//     }
-    
-//     csv.close();
-// }

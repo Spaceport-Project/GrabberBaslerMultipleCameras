@@ -88,13 +88,16 @@ private:
     unsigned int            m_uDeviceNum = 0;
     const std::string&      m_sCameraSettingsFile;
     int                     m_uFullResCntLimit;
+    const float             m_frameLossRation = 0.01;
     // Barrier                 m_Barrier_;
    
     threadVector            m_tGrabThreads;
-    std::thread                  m_tGrabThread;
+    std::thread             m_tGrabThread;
     threadVector            m_tConsumeThreads;
+    threadVector            configure_cam_threads;
+
    
-    std::thread                  m_tCheckBuffThread;
+    std::thread             m_tCheckBuffThread;
     threadVector            m_tOpenDevicesThreads;
     threadVector            m_tWriteMP4Threads;
     condVector              m_cProduceConsumeConds_;
@@ -126,18 +129,20 @@ private:
     uint32_t m_iDeviceKey;
     uint32_t m_iAllGroupMask;
     uint32_t m_iGroupKey;
+    unsigned int m_uNumCams;
     unsigned int m_uHeight ;
     unsigned int m_uFrameNum;
     unsigned int m_uWidth ;
     float m_fResizeFactor_;
     unsigned int m_uPacketSize;
-    unsigned int m_uPacketDelay;
+    unsigned int m_uTransDelay, m_uInterPacketDelay;
     float m_fExposureTime ;
     float m_fAcquisitionFrameRate;
     float m_fGain;
     bool m_bGrabExitFlag =false;
     
     std::string m_sPixelFormat;
+    Basler_UniversalCameraParams::PixelFormatEnums m_pixelFormat;
  
     std::vector<unsigned int> m_uLossRatioVec_;
     std::vector<unsigned int> m_uTotalNumImgVec_;
@@ -218,6 +223,8 @@ public:
     int StopGrabbing();
     int ConfigureCameraSettings();
 
+    int ConfigureCameraSettingsinThreads();
+
     int Save2BufferThenDisk();
     int OpenDevicesInThreads();
     
@@ -226,7 +233,7 @@ public:
     int ThreadConsumeAnWrite2DiskAsMp4Fun(int );
     int ThreadMultiGrabFun(int nCurCameraIndex);
     int ThreadOpenDevicesFun(int);
-    friend class  CBaslerImageEventHandler;
+    friend class CBaslerImageEventHandler;
 
     int StartSoundRecording();
     int ThreadStartSoundRecording();
@@ -234,10 +241,9 @@ public:
 
 private:
    
+    bool ReadCameraSettingsJson();
 
-
-
-
+    void ThreadConfigureCamSettings(int camId);
 };
 
 

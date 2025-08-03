@@ -8,11 +8,9 @@
 #include <cassert>
 #include <atomic>
 #include <map>
-// #include <cuda.h>
-// #include <cuda_runtime.h>
+
 #include <mutex>
 
-// #include <NvEncodeAPI.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include<opencv2/highgui/highgui.hpp>
 
@@ -24,7 +22,6 @@
 #include "NvEncoderCLIOptions.h"
 #include "NvEncoderOutputInVidMemCuda.h"
 
-// #include <ImageIO.h>
 auto EncodeDeleteFunc = [](NvEncoder *pEnc)
 {
     if (pEnc)
@@ -108,8 +105,24 @@ private:
         
     {
         enc_format_ = NV_ENC_BUFFER_FORMAT_ARGB;
+        cudaContextMutexes_= std::vector<std::mutex>(cu_contexts_.size());
+        for (int i = 0 ; i < num_devices_; i++) {
+            rgba_device_dsts_.push_back(nullptr);
+            pEncsCudaOrg_.push_back(nullptr);
+            fp_outs_org_.push_back(std::ofstream());
+            if (resize_factor_ != 1.0) {
+                rgba_device_dsts_resized_.push_back(nullptr);
+                fp_outs_.push_back(std::ofstream());
+                pEncsCuda_.push_back(nullptr);
+
+            }
+        }
   
-        initialize();
+        // initialize();
+        initializeThreadsFun();
+
+     
+
 
     }
   
@@ -129,8 +142,8 @@ private:
        
        close();
      
-        for (int i =0; i < cu_contexts_.size() ;i++)
-         ck(cuCtxDestroy(cu_contexts_[i]));
+        // for (int i =0; i < cu_contexts_.size() ;i++)
+        //  ck(cuCtxDestroy(cu_contexts_[i]));
 
     }
 
@@ -162,109 +175,7 @@ private:
     }
     
 
-//  void  BayerToH264ConverterNvidiaCodec::EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>  & bayer_device_src, int n_cam_index,  uint64_t timestamp, bool flag_exit, unsigned int cnt)
-//     {
-//         NppStatus stat = nppiCFAToRGBA_8u_C1AC4R(bayer_device_src->data(), (int)bayer_device_src->width(), {(int)bayer_device_src->width(), (int)bayer_device_src->height()}, 
-//                             {0, 0, (int)bayer_device_src->width(),(int)bayer_device_src->height() }, (Npp8u *)rgba_device_dsts_[n_cam_index]->data(), (int)rgba_device_dsts_[n_cam_index]->width()*4, NPPI_BAYER_BGGR, NPPI_INTER_UNDEFINED, 100);
-        
-        
-//         bool resize_flag = resize_factor_ != 1.0f;
 
-       
-//         std::vector<std::vector<uint8_t>> vPacket;
-//         std::vector<std::vector<uint8_t>> vPacket_resized;
-
-//        bool is_res_full = false;
-//        bool is_res_full_last = false;
-       
-//         if (!flag_exit)  {
-//             if (!resize_flag || cnt < full_res_cnt_limit_) {
-                
-//                 ck(cuCtxSetCurrent((CUcontext)pEncsCudaOrg_[n_cam_index]->GetDevice()));
-
-//                 const NvEncInputFrame* encoderInputFrame = pEncsCudaOrg_[n_cam_index]->GetNextInputFrame();
-//                 NvEncoderCuda::CopyToDeviceFrame((CUcontext)pEncsCudaOrg_[n_cam_index]->GetDevice(), rgba_device_dsts_[n_cam_index]->data(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
-//                 (int)encoderInputFrame->pitch,
-//                 pEncsCudaOrg_[n_cam_index]->GetEncodeWidth(),
-//                 pEncsCudaOrg_[n_cam_index]->GetEncodeHeight(),
-//                 CU_MEMORYTYPE_DEVICE,
-//                 encoderInputFrame->bufferFormat,
-//                 encoderInputFrame->chromaOffsets,
-//                 encoderInputFrame->numChromaPlanes,
-//                 false
-//                 );
-//                 pEncsCudaOrg_[n_cam_index]->EncodeFrame(vPacket, timestamp);
-//                 is_res_full = true;
-//                 if (cnt == full_res_cnt_limit_ -1) {
-//                     is_res_full_last = true;
-//                     // is_res_full = false;
-//                 }
-//             }
-
-            
-//             else if (resize_flag && cnt >= full_res_cnt_limit_) {
-//                 pEncsCudaOrg_[n_cam_index]->EndEncode(vPacket);
-
-//             }
-
-
-//             if ((!is_res_full  && resize_flag) || is_res_full_last) {
-//                 ck(cuCtxSetCurrent((CUcontext)pEncsCuda_[n_cam_index]->GetDevice()));
-            
-               
-
-//                 NppStatus result = nppiResize_8u_C4R(rgba_device_dsts_[n_cam_index]->data(), rgba_device_dsts_[n_cam_index]->pitch(), image_size_, image_roi_, 
-//                 rgba_device_dsts_resized_[n_cam_index]->data(), rgba_device_dsts_resized_[n_cam_index]->pitch(), image_size_resized_, image_roi_resized_, NPPI_INTER_LANCZOS);
-      
-
-//                 const NvEncInputFrame*    encoderInputFrame = pEncsCuda_[n_cam_index]->GetNextInputFrame();
-//                 NvEncoderCuda::CopyToDeviceFrame((CUcontext)pEncsCuda_[n_cam_index]->GetDevice(), rgba_device_dsts_resized_[n_cam_index]->data(), 0, (CUdeviceptr)encoderInputFrame->inputPtr,
-//                 (int)encoderInputFrame->pitch,
-//                 pEncsCuda_[n_cam_index]->GetEncodeWidth(),
-//                 pEncsCuda_[n_cam_index]->GetEncodeHeight(),
-//                 CU_MEMORYTYPE_DEVICE,
-//                 encoderInputFrame->bufferFormat,
-//                 encoderInputFrame->chromaOffsets,
-//                 encoderInputFrame->numChromaPlanes,
-//                 false
-//                 );
-//                 pEncsCuda_[n_cam_index]->EncodeFrame(vPacket_resized, timestamp);
-
-
-//             }
-//         }
-//         else if ( !resize_flag ) {
-//             pEncsCudaOrg_[n_cam_index]->EndEncode(vPacket);
-//             pEncsCudaOrg_[n_cam_index]->DestroyEncoder();
-
-
-//         } else {
-//             pEncsCuda_[n_cam_index]->EndEncode(vPacket_resized);
-//             pEncsCuda_[n_cam_index]->DestroyEncoder();
-//             // pEncsCudaOrg_[n_cam_index]->EndEncode(vPacket);
-
-//             pEncsCudaOrg_[n_cam_index]->DestroyEncoder();
-
-
-//         }
-
-      
-//         if (is_res_full )
-//             for (std::vector<uint8_t> &packet : vPacket)
-//             {
-//                 // For each encoded packet
-//                 fp_outs_org_[n_cam_index].write(reinterpret_cast<char*>(packet.data()), packet.size());
-//             }  
-//         if ((!is_res_full  && resize_flag) || is_res_full_last)
-//             for (std::vector<uint8_t> &packet : vPacket_resized)
-//             {
-//                 // For each encoded packet
-//                 fp_outs_[n_cam_index].write(reinterpret_cast<char*>(packet.data()), packet.size());
-//             }  
-
-
-
-//     }
     
 
     void  BayerToH264ConverterNvidiaCodec::EncodeCudaFromDevice(const std::unique_ptr< npp::ImageNPP_8u_C1>  & bayer_device_src, int n_cam_index,  uint64_t timestamp, bool flag_exit, unsigned int cnt)
@@ -367,7 +278,26 @@ private:
     }
     
 
-
+    int BayerToH264ConverterNvidiaCodec::closestDivisibleBy4(int num) {
+        // Check if the number is already divisible by 4
+        if (num % 4 == 0) {
+            return num;
+        }
+    
+        // Calculate the remainder
+        int remainder = num % 4;
+    
+        // Find the closest number divisible by 4
+        int lower = num - remainder;       // Closest smaller number divisible by 4
+        int higher = lower + 4;           // Closest larger number divisible by 4
+    
+        // Return the closer of the two
+        if (std::abs(num - lower) <= std::abs(num - higher)) {
+            return lower;
+        } else {
+            return higher;
+        }
+    }
 
    
     bool  BayerToH264ConverterNvidiaCodec::convertAndEncodeBayerToH264( uint8_t *bayerData, unsigned int n_curr_cam_index,  int64_t time_stamp) 
@@ -474,17 +404,113 @@ private:
             ck(cuCtxDestroy(cuContext));
         }
     }
+    void BayerToH264ConverterNvidiaCodec::threadsFunInitialize(int camID) {
+        
+ 
+ 
+        
+      
 
+        cuCtxSetCurrent(cu_contexts_[camID/ sep_cam_num_]);
+        rgba_device_dsts_[camID] = std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true);
+        // rgba_device_dsts_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true));
+        
+        NvEncPtr pEncOrg(new NvEncoderCuda(cu_contexts_[camID/sep_cam_num_ ], width_, height_, enc_format_), EncodeDeleteFunc);
+        InitializeEncoder(pEncOrg, encode_CLI_options_, enc_format_);
+        pEncsCudaOrg_[camID] = std::move(pEncOrg);
+        if (resize_factor_ != 1.0f ) {
+            // rgba_device_dsts_resized_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (resized_width_, resized_height_, true));
+            rgba_device_dsts_resized_[camID] = std::make_unique<npp::ImageNPP_8u_C4> (resized_width_, resized_height_, true);
+            NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[camID/sep_cam_num_], resized_width_, resized_height_, enc_format_), EncodeDeleteFunc);
+            InitializeEncoder(pEnc, encode_CLI_options_, enc_format_);           
+            // pEncsCuda_.push_back(std::move(pEnc));
+            pEncsCuda_[camID] = std::move(pEnc);
+        }
+
+
+    
+        std::string file_name = "/Cam-FullSize_" +  std::to_string(width_) + "x" + std::to_string(height_) + "_" + map_serial_nums_[camID]  + ".mp4" ;
+
+        std::string  file_path = folderName_ + file_name;
+        std::cout<<"Will be saved to "<<file_path<<std::endl;
+        // fp_outs_org_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
+        fp_outs_org_[camID] = std::ofstream(file_path, std::ios::out | std::ios::binary);
+        if (resize_factor_ != 1.0f ) {
+            
+                
+                std::string file_name = "/Cam_" + std::to_string(resized_width_) + "x" + std::to_string(resized_height_) + "_" + map_serial_nums_[camID]  + ".mp4" ;
+                std::string  file_path = folderName_ + file_name;
+                std::cout<<"Will be saved to "<<file_path<<std::endl;
+                fp_outs_[camID] = std::ofstream(file_path, std::ios::out | std::ios::binary);
+
+
+            
+        }
+        ck(cuCtxPopCurrent(NULL));
+
+    }
+    void BayerToH264ConverterNvidiaCodec::initializeThreadsFun() {
+         // ShowEncoderCapability();
+         std::ostringstream oss;
+         oss<<"-fps "<<fps_<<" -cq 31";
+ 
+         encode_CLI_options_ = NvEncoderInitParam(oss.str().c_str());
+ 
+       
+         sep_cam_num_ =  std::ceil(float(num_devices_)/cu_contexts_.size())  ; //std::ceil(num_devices_*18.0/24);
+         
+         auto now = time_point_;// std::chrono::system_clock::now();
+         std::time_t now_t = std::chrono::system_clock::to_time_t(now);
+         std::stringstream ss;
+            
+         ss << std::put_time(std::localtime(&now_t), "%Y-%m-%d_%H-%M-%S");
+         folderName_ = "/home/hamit/Softwares/GrabberBaslerMultipleCameras/recordings/" + ss.str();
+         if (mkdir(folderName_.c_str(), 0777) == 0 || errno == EEXIST) {
+             std::cout << folderName_ <<" directory created or already exists." << std::endl;
+         } else {
+             std::cerr << "Failed to create "<< folderName_<<" directory." << std::endl;
+             return ;
+         }
+         resized_width_ = closestDivisibleBy4( width_/resize_factor_);
+         resized_height_ = closestDivisibleBy4(height_/resize_factor_);
+         for (unsigned int i = 0; i < num_devices_; i++)
+         {
+         
+             initialize_threads.emplace_back(std::thread(std::bind(&BayerToH264ConverterNvidiaCodec::threadsFunInitialize, this, i)));
+         
+         }
+ 
+         
+         for (auto &th: initialize_threads)
+         {
+             if (th.joinable())
+                 th.join();
+         
+         }
+         
+ 
+         image_size_ = {.width= (int)width_, .height = (int)height_};
+         image_roi_ = {.x = 0, .y = 0, .width= (int)width_, .height = (int)height_};
+ 
+         image_size_resized_ = {.width= (int)(resized_width_), .height = (int)(resized_height_)};
+         image_roi_resized_= {.x = 0, .y = 0, .width= (int)(resized_width_), .height = (int)(resized_height_)};
+ 
+         
+          
+        
+
+
+    }
      void  BayerToH264ConverterNvidiaCodec::initialize(){
         
-        ShowEncoderCapability();
+        // ShowEncoderCapability();
         std::ostringstream oss;
         oss<<"-fps "<<fps_<<" -cq 31";
 
         encode_CLI_options_ = NvEncoderInitParam(oss.str().c_str());
 
       
-        unsigned int sep_cam_num =  std::ceil(num_devices_*19.0/24);
+        unsigned int sep_cam_num =  std::ceil(float(num_devices_)/cu_contexts_.size())  ; //std::ceil(num_devices_*18.0/24);
         
         auto now = time_point_;// std::chrono::system_clock::now();
         std::time_t now_t = std::chrono::system_clock::to_time_t(now);
@@ -499,28 +525,30 @@ private:
             return ;
         }
 
+        int resized_width = closestDivisibleBy4( width_/resize_factor_);
+        int resized_height = closestDivisibleBy4(height_/resize_factor_);
 
 
-        for (unsigned int i = 0, iGpu = 0 ; i < num_devices_; i++)
+
+        for (unsigned int i = 0; i < num_devices_; i++)
         {
             
         
 
-            cuCtxSetCurrent(cu_contexts_[i/sep_cam_num + iGpu]);
+            cuCtxSetCurrent(cu_contexts_[i/sep_cam_num ]);
             rgba_device_dsts_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true));
 
-            std::string file_name = "/Cam-Full_" + map_serial_nums_[i]  + ".mp4" ;
+            std::string file_name = "/Cam-FullSize_" +  std::to_string(width_) + "x" + std::to_string(height_) + "_" + map_serial_nums_[i]  + ".mp4" ;
 
             std::string  file_path = folderName + file_name;
-            std::cout<<"Saving to "<<file_path<<std::endl;
+            std::cout<<"Will be saved to "<<file_path<<std::endl;
             fp_outs_org_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
 
 
-            NvEncPtr pEncOrg(new NvEncoderCuda(cu_contexts_[i/sep_cam_num + iGpu], width_, height_, enc_format_), EncodeDeleteFunc);
+            NvEncPtr pEncOrg(new NvEncoderCuda(cu_contexts_[i/sep_cam_num ], width_, height_, enc_format_), EncodeDeleteFunc);
             InitializeEncoder(pEncOrg, encode_CLI_options_, enc_format_);
             pEncsCudaOrg_.push_back(std::move(pEncOrg));
                 
-
 
             if (resize_factor_ != 1.0f ) {
                 // std::ostringstream oss;
@@ -529,32 +557,30 @@ private:
 
                 // NvEncoderInitParam encode_CLI_options = NvEncoderInitParam(oss.str().c_str());
                 
-                std::string file_name = "/Cam_" + map_serial_nums_[i]  + ".mp4" ;
+                std::string file_name = "/Cam_" + std::to_string(resized_width) + "x" + std::to_string(resized_height) + "_" + map_serial_nums_[i]  + ".mp4" ;
                 std::string  file_path = folderName + file_name;
-                std::cout<<"Saving to "<<file_path<<std::endl;
+                std::cout<<"Will be saved to "<<file_path<<std::endl;
                 fp_outs_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
 
 
 
-                rgba_device_dsts_resized_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_/resize_factor_, height_/resize_factor_, true));
+                rgba_device_dsts_resized_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (resized_width, resized_height, true));
 
-                NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[i/sep_cam_num + iGpu ], width_/resize_factor_, height_/resize_factor_, enc_format_), EncodeDeleteFunc);
+                NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[i/sep_cam_num], resized_width, resized_height, enc_format_), EncodeDeleteFunc);
                 InitializeEncoder(pEnc, encode_CLI_options_, enc_format_);           
                 pEncsCuda_.push_back(std::move(pEnc));
 
 
             }
-            if (i + 1 % sep_cam_num == 0 )
-                    iGpu++;
-            
+         
             
         }
 
         image_size_ = {.width= (int)width_, .height = (int)height_};
         image_roi_ = {.x = 0, .y = 0, .width= (int)width_, .height = (int)height_};
 
-        image_size_resized_ = {.width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
-        image_roi_resized_= {.x = 0, .y = 0, .width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
+        image_size_resized_ = {.width= (int)(resized_width), .height = (int)(resized_height)};
+        image_roi_resized_= {.x = 0, .y = 0, .width= (int)(resized_width), .height = (int)(resized_height)};
 
         
          
@@ -563,209 +589,4 @@ private:
     }
 
 
-    void  BayerToH264ConverterNvidiaCodec::initializeFullRes(){
-        
-        ShowEncoderCapability();
-        std::ostringstream oss;
-        oss<<"-fps "<<fps_<<" -cq 31";
-
-        encode_CLI_options_ = NvEncoderInitParam(oss.str().c_str());
-
-      
-        unsigned int sep_cam_num =  std::ceil(num_devices_*19.0/24);
-        
-        auto now = time_point_;// std::chrono::system_clock::now();
-        std::time_t now_t = std::chrono::system_clock::to_time_t(now);
-        std::stringstream ss;
-           
-        ss << std::put_time(std::localtime(&now_t), "%Y-%m-%d_%H-%M-%S");
-        std::string folderName = "../recordings/" + ss.str();
-        if (mkdir(folderName.c_str(), 0777) == 0 || errno == EEXIST) {
-            std::cout << folderName <<" directory created or already exists." << std::endl;
-        } else {
-            std::cerr << "Failed to create "<< folderName<<" directory." << std::endl;
-            return ;
-        }
-
-
-
-        for (unsigned int i = 0 ; i < num_devices_; i++)
-        {
-            
-        
-
-            cuCtxPushCurrent(cu_contexts_[i/sep_cam_num]);
-            rgba_device_dsts_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true));
-            rgba_device_dsts_resized_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_/resize_factor_, height_/resize_factor_, true));
-
-
-            // std::string file_name = "/Cam_" + map_serial_nums_[i]  + ".mp4" ;
-            // std::string file_path = folderName + file_name;
-            // fp_outs_.push_back(std::ofstream());
-            
-           
-
-            if (full_res_cnt_limit_ > 0) {
-                std::string file_name = "/Cam-Full_" + map_serial_nums_[i]  + ".mp4" ;
-
-                std::string  file_path = folderName + file_name;
-                std::cout<<"Saving to "<<file_path<<std::endl;
-                fp_outs_org_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
-
-
-                NvEncPtr pEncOrg(new NvEncoderCuda(cu_contexts_[i/sep_cam_num], width_, height_, enc_format_), EncodeDeleteFunc);
-                InitializeEncoder(pEncOrg, encode_CLI_options_, enc_format_);
-                pEncsCudaOrg_.push_back(std::move(pEncOrg));
-                
-
-
-            }
-
-           
-
-            
-
-
-
-             if (resize_factor_ != 1) {
-                 std::string file_name = "/Cam_" + map_serial_nums_[i]  + ".mp4" ;
-                 std::string  file_path = folderName + file_name;
-                 std::cout<<"Saving to "<<file_path<<std::endl;
-                 fp_outs_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
-            // std::cout<<"Saving to "<<file_path<<std::endl;
-
-
-            }
-            
-            
-                  
-            pEncsCuda_.push_back(nullptr);
-
-
-
-            cuCtxPopCurrent(nullptr);
-
-        
-        }
-
-        image_size_ = {.width= (int)width_, .height = (int)height_};
-        image_roi_ = {.x = 0, .y = 0, .width= (int)width_, .height = (int)height_};
-
-        image_size_resized_ = {.width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
-        image_roi_resized_= {.x = 0, .y = 0, .width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
-
-        
-         
-        
-
-    }
-
-    void  BayerToH264ConverterNvidiaCodec::initializeResize(int cam_index){
-        
-        
-
-      
-            unsigned int sep_cam_num =  std::ceil(num_devices_*19.0/24);
-        
-       
-       
-        
-
-            cuCtxPushCurrent(cu_contexts_[cam_index/sep_cam_num]);
-          
-            
-            NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[cam_index/sep_cam_num], width_/resize_factor_, height_/resize_factor_, enc_format_), EncodeDeleteFunc);
-            InitializeEncoder(pEnc, encode_CLI_options_, enc_format_);           
-            pEncsCuda_[cam_index]= std::move(pEnc);
-
-
-
-            cuCtxPopCurrent(nullptr);
-
-        
-       
-
-        
-         
-        
-
-    }
     
-    // void  BayerToH264ConverterNvidiaCodec::initialize(){
-        
-    //     ShowEncoderCapability();
-    //     std::ostringstream oss;
-    //     oss<<"-fps "<<fps_<<" -cq 31";
-
-    //     encode_CLI_options_ = NvEncoderInitParam(oss.str().c_str());
-
-      
-    //     unsigned int sep_cam_num =  std::ceil(num_devices_*19.0/24);
-        
-    //     auto now = time_point_;// std::chrono::system_clock::now();
-    //     std::time_t now_t = std::chrono::system_clock::to_time_t(now);
-    //     std::stringstream ss;
-           
-    //     ss << std::put_time(std::localtime(&now_t), "%Y-%m-%d_%H-%M-%S");
-    //     std::string folderName = "../recordings/" + ss.str();
-    //     if (mkdir(folderName.c_str(), 0777) == 0 || errno == EEXIST) {
-    //         std::cout << folderName <<" directory created or already exists." << std::endl;
-    //     } else {
-    //         std::cerr << "Failed to create "<< folderName<<" directory." << std::endl;
-    //         return ;
-    //     }
-
-
-
-    //     for (unsigned int i = 0 ; i < num_devices_; i++)
-    //     {
-            
-        
-
-    //         cuCtxPushCurrent(cu_contexts_[i/sep_cam_num]);
-    //         rgba_device_dsts_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_, height_, true));
-    //         rgba_device_dsts_resized_.push_back(std::make_unique<npp::ImageNPP_8u_C4> (width_/resize_factor_, height_/resize_factor_, true));
-
-
-    //         std::string file_name = "/Cam_" + map_serial_nums_[i]  + ".mp4" ;
-    //         std::string file_path = folderName + file_name;
-    //         std::cout<<"Saving to "<<file_path<<std::endl;
-    //         fp_outs_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
-            
-    //         if (resize_factor_ != 1) {
-    //             file_name = "/Cam-Full_" + map_serial_nums_[i]  + ".mp4" ;
-    //             file_path = folderName + file_name;
-    //             fp_outs_org_.push_back(std::ofstream(file_path, std::ios::out | std::ios::binary));
-
-                
-    //             NvEncPtr pEncOrg(new NvEncoderCuda(cu_contexts_[i/sep_cam_num], width_, height_, enc_format_), EncodeDeleteFunc);
-    //             InitializeEncoder(pEncOrg, encode_CLI_options_, enc_format_);
-    //             pEncsCudaOrg_.push_back(std::move(pEncOrg));
-            
-    //         }
-            
-    //         NvEncPtr pEnc(new NvEncoderCuda(cu_contexts_[i/sep_cam_num], width_/resize_factor_, height_/resize_factor_, enc_format_), EncodeDeleteFunc);
-    //         InitializeEncoder(pEnc, encode_CLI_options_, enc_format_);           
-    //         pEncsCuda_.push_back(std::move(pEnc));
-
-
-
-    //         cuCtxPopCurrent(nullptr);
-
-        
-    //     }
-
-    //     image_size_ = {.width= (int)width_, .height = (int)height_};
-    //     image_roi_ = {.x = 0, .y = 0, .width= (int)width_, .height = (int)height_};
-
-    //     image_size_resized_ = {.width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
-    //     image_roi_resized_= {.x = 0, .y = 0, .width= (int)(width_/resize_factor_), .height = (int)(height_/resize_factor_)};
-
-        
-         
-        
-
-    // }
-    
-
-  
