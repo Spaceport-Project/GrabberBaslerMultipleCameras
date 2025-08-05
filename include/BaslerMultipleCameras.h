@@ -100,14 +100,14 @@ private:
     std::thread             m_tCheckBuffThread;
     threadVector            m_tOpenDevicesThreads;
     threadVector            m_tWriteMP4Threads;
-    condVector              m_cProduceConsumeConds_;
+    condVector              m_cProduceConsumeConds;
 
     std::unique_ptr<BayerToH264ConverterNvidiaCodec> converter;
 
 
     std::mutex              m_mWriteMp4Mutex;
     std::mutex   m_fpsMutex;
-    std::vector<std::mutex> m_mProduceConsumeMutexes_;
+    std::vector<std::mutex> m_mProduceConsumeMutexes;
   
     std::map<int, std::string> m_mapSerials; 
     std::map<int, std::string> m_mapModels; 
@@ -133,25 +133,26 @@ private:
     unsigned int m_uHeight ;
     unsigned int m_uFrameNum;
     unsigned int m_uWidth ;
-    float m_fResizeFactor_;
+    float m_fResizeFactor;
+    float m_fSaturation_1, m_fSaturation_2, m_fSaturation_3, m_fSaturation_4;
     unsigned int m_uPacketSize;
     unsigned int m_uTransDelay, m_uInterPacketDelay;
-    float m_fExposureTime ;
+    float m_fExposureTime_1, m_fExposureTime_2 ;
     float m_fAcquisitionFrameRate;
-    float m_fGain;
+    float m_fGain_1,  m_fGain_2 ;
     bool m_bGrabExitFlag =false;
     
     std::string m_sPixelFormat;
     Basler_UniversalCameraParams::PixelFormatEnums m_pixelFormat;
  
-    std::vector<unsigned int> m_uLossRatioVec_;
-    std::vector<unsigned int> m_uTotalNumImgVec_;
+    std::vector<unsigned int> m_uLossRatioVec;
+    std::vector<unsigned int> m_uTotalNumImgVec;
 
 
-    std::vector<bool> m_bStarters_;
-    std::atomic<bool> m_bStarter_ = false;
-    u_int64_t m_initTimeStamp_;
-    std::chrono::system_clock::time_point m_timePoint_;
+    std::vector<bool> m_bStarters;
+    std::atomic<bool> m_bStarter = false;
+    u_int64_t m_initTimeStamp;
+    std::chrono::system_clock::time_point m_timePoint;
 
 
     struct AudioSample {
@@ -201,10 +202,10 @@ private:
 #pragma pack(pop)
     
     
-    AudioData m_soundData_;
-    std::mutex m_soundMutex_;
-    std::condition_variable m_soundCond_;
-    std::thread m_soundThread_;
+    AudioData m_soundData;
+    std::mutex m_soundMutex;
+    std::condition_variable m_soundCond;
+    std::thread m_soundThread;
 
 public:
     static bool SaveBayerAsTiff(const std::string &file_name, uint8_t *buffer, uint32_t width, u_int32_t height);
@@ -221,6 +222,7 @@ public:
     int ThreadSingleGrabFunWithActCommand();
     int CloseDevices();
     int StopGrabbing();
+  
     int ConfigureCameraSettings();
 
     int ConfigureCameraSettingsinThreads();
@@ -242,7 +244,7 @@ public:
 private:
    
     bool ReadCameraSettingsJson();
-
+    bool WaitForPTPSync(int timeoutSeconds);     
     void ThreadConfigureCamSettings(int camId);
 };
 

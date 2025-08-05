@@ -63,16 +63,14 @@ bool isNinetyPercentRAMUsed() {
 void checkMemoryUsage() {
     while (true) {
         if (isNinetyPercentRAMUsed()) {
-            std::cout << "90% or more of the RAM is used." << std::endl;
+            std::cout << "92% or more of the RAM is used." << std::endl;
             std::cout<<"Exiting from Grabbing Tool!"<<std::endl;
             BayerToH264ConverterNvidiaCodec::exit_flag.store(true, std::memory_order_release);
             BaslerMultipleCameras::m_bExit = true;
             return;
 
         } 
-        // else {
-        //      std::cout << "Less than 90% of the RAM is used." << std::endl;
-        // }
+    
 
         // Sleep for 1 second
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -122,19 +120,12 @@ int main(int argc, char *argv[]) {
     }
    
  
-
-
     if (baslerCams->StartGrabbing() != exit_code) 
     {
       return -1;
     }
     
 
-
-    // // if (baslerCams->Save2BufferThenDisk() != exit_code) 
-    // // {
-    // //   return -1;
-    // // }
 
     // baslerCams->StartSoundRecording();
      
@@ -145,13 +136,11 @@ int main(int argc, char *argv[]) {
     
 
     delete baslerCams;
+
     PylonTerminate();
 
 
-
-
-
-    return 0;
+    return exit_code;
 
 
 }

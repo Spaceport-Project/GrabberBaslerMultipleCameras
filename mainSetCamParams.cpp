@@ -45,15 +45,18 @@ int ConfigureCameraSettings(const std::string & cameraSettingsFile )
     unsigned int m_uWidth = pt.get<unsigned int>("Width");
     float m_fResizeFactor_= pt.get<float>("ResizeFactor");
     int m_uFullResCntLimit =  pt.get<int>("FullResCountLimit");
-    float m_fExposureTime = pt.get<float>("ExposureTime");
+    float m_fExposureTime_1 = pt.get<float>("ExposureTime_1");
+    float m_fExposureTime_2 = pt.get<float>("ExposureTime_2");
     float m_fAcquisitionFrameRate = pt.get<float>("AcquisitionFrameRate");
-    float m_fGain = pt.get<float>("Gain");
     unsigned int m_uFrameNum = pt.get<unsigned int>("FrameNum");
     std::string m_sPixelFormat = pt.get<std::string>("PixelFormat");
     unsigned int m_uPacketSize =  pt.get<unsigned int>("PacketSize");
     unsigned int m_uTransDelay = pt.get<unsigned int>("TransDelay");
     unsigned int m_uInterPacketDelay = pt.get<unsigned int>("IntPacketDelay");
-  
+    float m_fGain_1 = pt.get<float>("Gain_1");
+    float m_fGain_2 = pt.get<float>("Gain_2");
+    float m_fSaturation_1 =  pt.get<float>("Saturation_1");
+    float m_fSaturation_2 =  pt.get<float>("Saturation_2");
     
     auto pixelFormatEnum = magic_enum::enum_cast<Basler_UniversalCameraParams::PixelFormatEnums>(m_sPixelFormat);
   
@@ -147,12 +150,23 @@ int ConfigureCameraSettings(const std::string & cameraSettingsFile )
             bsCameras[i].Width.SetValue(m_uWidth);
             if (m_uWidth == 3500) bsCameras[i].OffsetX.SetValue(296);
 			bsCameras[i].Height.SetValue(m_uHeight);
-            bsCameras[i].ExposureTime.SetValue(m_fExposureTime);
             bsCameras[i].GainSelector.SetValue(GainSelector_All);
-            bsCameras[i].Gain.SetValue(m_fGain);
 
+            bsCameras[i].BslLightSourcePreset.SetValue(BslLightSourcePreset_Daylight5000K);
 
-         
+            int cam_serial = std::stoi( allDeviceInfos[i].GetSerialNumber().c_str() );
+
+             if (cam_serial < 40608426 )  {
+                bsCameras[i].BslSaturation.SetValue(m_fSaturation_1);
+                bsCameras[i].Gain.SetValue(m_fGain_1);
+                bsCameras[i].ExposureTime.SetValue(m_fExposureTime_1);
+            }
+            else {
+                bsCameras[i].BslSaturation.SetValue(m_fSaturation_2);
+                bsCameras[i].Gain.SetValue(m_fGain_2);
+                bsCameras[i].ExposureTime.SetValue(m_fExposureTime_2);
+
+            }
             
             // cout<<"ptp clock:"<<bsCameras[i].BslPeriodicSignalSource.GetValue()<<endl;
             // bsCameras[i].PtpEnable.SetValue(false);
@@ -169,6 +183,7 @@ int ConfigureCameraSettings(const std::string & cameraSettingsFile )
             // // Disable two-step operation
             // bsCameras[i].BslPtpTwoStep.SetValue(false);
             // std::cout<<"PTP enabled:"<<bsCameras[i].PtpEnable.GetValue()<<std::endl;
+            
             bsCameras[i].PtpEnable.SetValue(true);
 
            
